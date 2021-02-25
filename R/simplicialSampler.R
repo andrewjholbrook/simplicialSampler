@@ -15,16 +15,25 @@ target <- function(X,distrib=NULL) {
 
 banana <- function(X,B) {
   # B is bananicity constant
-  N <- dim(X)[2]
-  eponent <- - X[,1]^2/200 - 0.5*(X[,2]+B*X[,1]^2-100*B)^2 -
-    0.5*rowSums(X[,3:N]^2)
+  if (is.vector(X)) {
+    N <- length(X)
+    exponent <- - X[1]^2/200 - 0.5*(X[2]+B*X[1]^2-100*B)^2 -
+      0.5*sum(X[3:N]^2)
+  } else if (is.matrix(X)) {
+    N <- dim(X)[2]
+    exponent <- - X[,1]^2/200 - 0.5*(X[,2]+B*X[,1]^2-100*B)^2 -
+      0.5*rowSums(X[,3:N]^2)
+  } else {
+    stop("States must be vectors or matrices.")
+  }
   return(exp(exponent))
 }
 
-proposal <- function(N,x,lambda) {
+proposal <- function(N,x,lambda,distrib) {
   # N is dimensionality
   # x is current state
   # lambda is scale
+  # distrib is target distribution
   v_Nplus1 <- rep((1+sqrt(N+1))/N,N)
   M <- rbind(diag(N), v_Nplus1)
   M <- M - matrix(v_Nplus1,N+1,N)
@@ -32,12 +41,12 @@ proposal <- function(N,x,lambda) {
   U <- pracma::randortho(n=N)
   M4 <- M4 %*% U
   M4 <- M4 + matrix(x,N+1,N,byrow = TRUE)
-  output <- M4[sample(1:(N+1),1,prob = f(M4)),]
+  output <- M4[sample(1:(N+1),1,prob = target(M4,distrib)),]
   return(output)
 }
 
-inference <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
-                      targetAccept=0.5) {
+simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
+                      targetAccept=0.5,target=NULL) {
   if(N!=length(x0)) stop("Dimension mismatch.")
   
   chain <- matrix(0,maxIt,N)
@@ -51,7 +60,7 @@ inference <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
   chain[1,] <- x0
   for (i in 2:maxIt){
     Proposed = Proposed + 1
-    chain[i,] <- proposal(N,chain[i-1,],lambda)
+    chain[i,] <- proposal(N,chain[i-1,],lambda,target)
     SampCount <- SampCount + 1
     if(any(chain[i,] != chain[i-1,])){
       accept[i] <- 1
@@ -78,7 +87,7 @@ inference <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
 }
 
 randomWalk <- function(N,x0,maxIt=10000,adaptStepSize=TRUE,
-                      targetAccept=0.25) {
+                      targetAccept=0.25, target) {
   if(N!=length(x0)) stop("Dimension mismatch.")
   
   chain <- matrix(0,maxIt,N)
@@ -95,8 +104,8 @@ randomWalk <- function(N,x0,maxIt=10000,adaptStepSize=TRUE,
   for (i in 2:maxIt){
     Proposed = Proposed + 1
     xStar <- rnorm(N,sd=sigma) + chain[i-1,]
-    if(log(runif(1)) < sum(dnorm(xStar,log=TRUE)) -
-       sum(dnorm(chain[i-1,],log=TRUE))){
+    if(log(runif(1)) < sum(log(target(xStar,distrib = target))) -
+       sum(log(target(chain[i-1,],distrib = target)))){
       accept[i] <- 1
       Acceptances = Acceptances + 1
       chain[i,] <- xStar
