@@ -1,5 +1,6 @@
 library(rstiefel)
 library(mvtnorm)
+library(coda)
 
 f <- function(X) {
   densities <- dmvnorm(X,sigma = diag(1:dim(X)[2]))
@@ -14,7 +15,7 @@ proposal <- function(N,x,lambda) {
   M <- rbind(diag(N), v_Nplus1)
   M <- M - matrix(v_Nplus1,N+1,N)
   M4 <- M * lambda /sqrt(2)
-  U <- rmf.matrix(matrix(0,N,N))
+  U <- rmf.matrix(matrix(0,N,N)) # uniform distribution
   M4 <- M4 %*% U
   M4 <- M4 + matrix(x,N+1,N,byrow = TRUE)
   
@@ -23,7 +24,7 @@ proposal <- function(N,x,lambda) {
   return(output)
 }
 
-mcmc <- function(N,x0,lambda,maxIt=10000) {
+inference <- function(N,x0,lambda,maxIt=10000) {
   if(N!=length(x0)) stop("Dimension mismatch.")
 
   chain <- matrix(0,maxIt,N)
@@ -44,13 +45,18 @@ mcmc <- function(N,x0,lambda,maxIt=10000) {
 #####
 #
 N = 10
-maxIt <- 10000
+maxIt <- 100000
 
-output <- mcmc(N=N,x0=rep(0,N),lambda = 3, maxIt = maxIt)
+system.time(inference(N=N,x0=rep(0,N),lambda = 3, maxIt = maxIt))
+output <- inference(N=N,x0=rep(0,N),lambda = 3, maxIt = maxIt)
 
 for(i in 1:N){
-  qqplot(output[,i],rnorm(maxIt,sd=sqrt(i)))
-  qqline(output[,i], distribution = function(p) qnorm(p, sd=sqrt(i)))
+  qqplot(output[[1]][,i],rnorm(maxIt,sd=1))#sqrt(i)))
+  qqline(output[[1]][,i], distribution = function(p) qnorm(p,sd=1 )) #sd=sqrt(i)))
 }
 
+out.mcmc <- as.mcmc(output[[1]])
+traceplot(out.mcmc)
+
+effectiveSize(out.mcmc)
 

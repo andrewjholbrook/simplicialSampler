@@ -1,1 +1,1 @@
-# hedgingMCMC
+# simplicialSampler
