@@ -1,4 +1,17 @@
 
+recursion <- function(Ct,XbarMinus,Xt,epsilon,sd,t,warmup=100) {
+  if(t>warmup) {
+    XbarT  <- Xt/t + (t-1)/t*XbarMinus
+    CtPlus <- Ct*(t-1)/t + sd/t*( t*XbarMinus%*%t(XbarMinus) -
+                                    (t+1)*XbarT%*%t(XbarT) +
+                                    Xt%*%t(Xt) + epsilon*diag(length(Xt)))
+  } else {
+    XbarT  <- Xt/t + (t-1)/t*XbarMinus
+    CtPlus <- Ct
+  }
+  return(list(CtPlus,XbarT))
+}
+
 target <- function(X,distrib=NULL) {
   if(is.null(distrib)) stop("Target distribution must be specified.")
   if (distrib=="sphericalGaussian") {
