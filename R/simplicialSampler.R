@@ -17,7 +17,13 @@ target <- function(X,distrib=NULL) {
   if (distrib=="sphericalGaussian") {
     densities <- mvtnorm::dmvnorm(X)
   } else if (distrib=="diagGaussian") {
-    densities <- mvtnorm::dmvnorm(X,sigma = diag(1:dim(X)[2]))
+    if (is.vector(X)) {
+      densities <- dnorm(X,sd = sqrt(1:length(X)))
+    } else if (is.matrix(X)) {
+      densities <- mvtnorm::dmvnorm(X,sigma = diag(1:dim(X)[2]))
+    } else {
+      stop("States must be vectors or matrices.")
+    }
   } else if (distrib=="banana") {
     densities <- banana(X,B=0.1)
   } else {
@@ -99,51 +105,55 @@ simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
   return(list(chain,ratio,lambda))
 }
 
-randomWalk <- function(N,x0,maxIt=10000,adaptStepSize=TRUE,
-                      targetAccept=0.25, target) {
+randomWalk <- function(N, x0, maxIt=10000,
+                       adaptCov=FALSE, target=NULL) {
   if(N!=length(x0)) stop("Dimension mismatch.")
-  
+
   chain <- matrix(0,maxIt,N)
   
-  sigma <- 1/sqrt(N)
-  
-  Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
-  SampBound = 5   # current total samples before adapting radius
-  SampCount = 0   # number of samples collected (adapt when = SampBound)
-  Proposed = 0;
-  
+  sigma <- 2.4/sqrt(N)
+  Ct <- sigma^2*diag(N) 
+  xbar <- x0
+
   accept <- rep(0,maxIt)
   chain[1,] <- x0
   for (i in 2:maxIt){
-    Proposed = Proposed + 1
-    xStar <- rnorm(N,sd=sigma) + chain[i-1,]
-    if(log(runif(1)) < sum(log(target(xStar,distrib = target))) -
-       sum(log(target(chain[i-1,],distrib = target)))){
-      accept[i] <- 1
-      Acceptances = Acceptances + 1
-      chain[i,] <- xStar
-    } else {
-      chain[i,] <- chain[i-1,]
-    }
-    SampCount <- SampCount + 1
-    
-    
-    if (SampCount == SampBound) { # adjust lambda at increasing intervals
-      
-      AcceptRatio <- Acceptances / SampBound
-      AdaptRatio  <- AcceptRatio / targetAccept
-      if (AdaptRatio>2) AdaptRatio <- 2
-      if (AdaptRatio<0.5) AdaptRatio <- 0.5
-      sigma <- sigma * AdaptRatio
-      
-      SampCount <- 0
-      SampBound <- ceiling(SampBound^1.01)
-      Acceptances <- 0
+    if (adaptCov==FALSE) {
+      xStar <- rnorm(N,sd=sigma) + chain[i-1,]
+      if(log(runif(1)) < sum(log(target(xStar,distrib = target))) -
+         sum(log(target(chain[i-1,],distrib = target)))){
+        accept[i] <- 1
+        chain[i,] <- xStar
+      } else {
+        chain[i,] <- chain[i-1,]
+      }
+    } else { # with covariance
+      xStar <- as.vector(t(chol(Ct))%*%rnorm(N) + chain[i-1,])
+      if(log(runif(1)) < sum(log(target(xStar,distrib = target))) -
+         sum(log(target(as.vector(chain[i-1,]),distrib = target)))){
+        accept[i] <- 1
+        chain[i,] <- xStar
+      } else {
+        chain[i,] <- chain[i-1,]
+      }
+      updt <- recursion(Ct=Ct,
+                        XbarMinus=xbar,
+                        Xt=chain[i,],
+                        epsilon = 0.000001,
+                        sd=sigma^2,
+                        t=i,
+                        warmup=maxIt/10)
+      Ct <- updt[[1]]
+      xbar <- updt[[2]]
     }
     
     if(i %% 1000 == 0) cat(i,"\n")
   }
   ratio <- sum(accept)/(maxIt-1)
   cat("Acceptance ratio: ", ratio,"\n")
-  return(list(chain,ratio,sigma))
+  if (adaptCov) {
+    return(list(chain,ratio,sigma,Ct))
+  } else{
+    return(list(chain,ratio,sigma,diag(N)))
+  }
 }
