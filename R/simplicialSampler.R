@@ -48,7 +48,7 @@ banana <- function(X,B) {
   return(exp(exponent))
 }
 
-proposal <- function(N,x,lambda,distrib) {
+proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL) {
   # N is dimensionality
   # x is current state
   # lambda is scale
@@ -58,14 +58,18 @@ proposal <- function(N,x,lambda,distrib) {
   M <- M - matrix(v_Nplus1,N+1,N)
   M4 <- M * lambda /sqrt(2)
   U <- pracma::randortho(n=N)
-  M4 <- M4 %*% U
+  if (adaptScales) {
+    M4 <- M4 %*% U %*% chol(Ct)
+  } else {
+    M4 <- M4 %*% U
+  }
   M4 <- M4 + matrix(x,N+1,N,byrow = TRUE)
   output <- M4[sample(1:(N+1),1,prob = target(M4,distrib)),]
   return(output)
 }
 
 simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
-                      targetAccept=0.5,target=NULL) {
+                      targetAccept=0.5,target=NULL,adaptScales=FALSE) {
   if(N!=length(x0)) stop("Dimension mismatch.")
   
   chain <- matrix(0,maxIt,N)
@@ -73,13 +77,21 @@ simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
   Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
   SampBound = 5   # current total samples before adapting radius
   SampCount = 0   # number of samples collected (adapt when = SampBound)
-  Proposed = 0;
+  Proposed = 0
+  
+  if (adaptScales) {
+    Ct <- diag(N)
+    xbar <- x0 
+  } else {
+    Ct <- NULL
+  }
   
   accept <- rep(0,maxIt)
   chain[1,] <- x0
   for (i in 2:maxIt){
     Proposed = Proposed + 1
-    chain[i,] <- proposal(N,chain[i-1,],lambda,target)
+    chain[i,] <- proposal(N,chain[i-1,],lambda,target,
+                          adaptScales = adaptScales, Ct=Ct)
     SampCount <- SampCount + 1
     if(any(chain[i,] != chain[i-1,])){
       accept[i] <- 1
@@ -96,6 +108,18 @@ simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
       SampCount <- 0
       SampBound <- ceiling(SampBound^1.01)
       Acceptances <- 0
+    }
+    
+    if (adaptScales) {
+      updt <- recursion(Ct=Ct,     # multivariate scales update
+                        XbarMinus=xbar,
+                        Xt=chain[i,],
+                        epsilon = 0.000001,
+                        sd=1,
+                        t=i,
+                        warmup=maxIt/100)
+      Ct <- updt[[1]]
+      xbar <- updt[[2]] 
     }
     
     if(i %% 1000 == 0) cat(i,"\n")
