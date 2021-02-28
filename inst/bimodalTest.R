@@ -6,7 +6,7 @@ library(coda)
 
 n <- 4
 results <- simplicialSampler(N=n,x0=rep(0,n), maxIt = 100000,lambda=2,
-                             adaptStepSize = TRUE,targetAccept = 0.25,
+                             adaptStepSize = TRUE,targetAccept = 0.3,
                              target = "bimodalGaussian")
 out.mcmc <- as.mcmc(results[[1]])
 effectiveSize(out.mcmc)
