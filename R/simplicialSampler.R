@@ -15,10 +15,16 @@ recursion <- function(Ct,XbarMinus,Xt,epsilon,sd,t,warmup=100) {
 target <- function(X,distrib=NULL) {
   if(is.null(distrib)) stop("Target distribution must be specified.")
   if (distrib=="sphericalGaussian") {
-    densities <- mvtnorm::dmvnorm(X)
+    if (is.vector(X)) {
+      densities <- mvtnorm::dmvnorm(X,sigma = diag(rep(1,length(X))))
+    } else if (is.matrix(X)) {
+      densities <- mvtnorm::dmvnorm(X,sigma = diag(rep(1,dim(X)[2])))
+    } else {
+      stop("States must be vectors or matrices.")
+    }
   } else if (distrib=="diagGaussian") {
     if (is.vector(X)) {
-      densities <- dnorm(X,sd = sqrt(1:length(X)))
+      densities <- mvtnorm::dmvnorm(X,sigma = diag(1:length(X)))
     } else if (is.matrix(X)) {
       densities <- mvtnorm::dmvnorm(X,sigma = diag(1:dim(X)[2]))
     } else {

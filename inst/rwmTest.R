@@ -27,7 +27,7 @@ for(i in 1:N){
   qqline(output[[1]][,i], distribution = function(p) qnorm(p,sd=sqrt(i)))
 }
 
-# soherical target / no adapt cov
+# spherical target / no adapt cov
 output <- randomWalk(N=N, x0=rep(0,N), maxIt = maxIt,
                      adaptCov = FALSE, target = "sphericalGaussian")
 
