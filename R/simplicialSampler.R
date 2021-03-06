@@ -106,8 +106,17 @@ simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
   chain[1,] <- x0
   for (i in 2:maxIt){
     Proposed = Proposed + 1
-    chain[i,] <- proposal(N,chain[i-1,],lambda,target,
+    
+    prpsl <- NULL
+    attempt <- 0
+    while( is.null(prpsl) && attempt <= 100 ) {
+      attempt <- attempt + 1
+      try(
+        prpsl <- proposal(N,chain[i-1,],lambda,target,
                           adaptScales = adaptScales, Ct=Ct)
+      )
+    } 
+    chain[i,] <- prpsl
     SampCount <- SampCount + 1
     if(any(chain[i,] != chain[i-1,])){
       accept[i] <- 1
