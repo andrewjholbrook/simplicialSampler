@@ -12,7 +12,7 @@ source("R/simplicialSampler.R")
 #####
 #
 maxIt <- 10000
-for(N in seq(from=35,to=100,by=5)) {
+for(N in seq(from=100,to=500,by=10)) {
   for(targetAccept in seq(from=0.2,to=0.95,length.out = 20)) {
     output <- simplicialSampler(N=N, x0=rep(0,N), maxIt = maxIt,
                                 adaptStepSize=TRUE,
