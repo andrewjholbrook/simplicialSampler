@@ -12,21 +12,28 @@ recursion <- function(Ct,XbarMinus,Xt,epsilon,sd,t,warmup=100) {
   return(list(CtPlus,XbarT))
 }
 
+logsumexp <- function(x) {
+  c <- max(x)
+  return(c+log(sum(exp(x-c))))
+}
+
 target <- function(X,distrib=NULL) {
   if(is.null(distrib)) stop("Target distribution must be specified.")
   if (distrib=="sphericalGaussian") {
     if (is.vector(X)) {
       densities <- mvtnorm::dmvnorm(X,sigma = diag(rep(1,length(X))))
     } else if (is.matrix(X)) {
-      densities <- mvtnorm::dmvnorm(X,sigma = diag(rep(1,dim(X)[2])))
+      densities <- mvtnorm::dmvnorm(X,sigma = diag(rep(1,dim(X)[2])),log = TRUE)
+      densities <- exp(densities-logsumexp(densities)) # helps with underflow
     } else {
       stop("States must be vectors or matrices.")
     }
   } else if (distrib=="diagGaussian") {
     if (is.vector(X)) {
-      densities <- exp(mvtnorm::dmvnorm(X,sigma = diag(1:length(X)),log = TRUE))
+      densities <- mvtnorm::dmvnorm(X,sigma = diag(1:length(X)))
     } else if (is.matrix(X)) {
-      densities <- exp(mvtnorm::dmvnorm(X,sigma = diag(1:dim(X)[2]),log = TRUE))
+      densities <- mvtnorm::dmvnorm(X,sigma = diag(1:dim(X)[2]),log = TRUE)
+      densities <- exp(densities-logsumexp(densities)) # helps with underflow
     } else {
       stop("States must be vectors or matrices.")
     }
