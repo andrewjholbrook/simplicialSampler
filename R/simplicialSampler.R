@@ -24,9 +24,9 @@ target <- function(X,distrib=NULL) {
     }
   } else if (distrib=="diagGaussian") {
     if (is.vector(X)) {
-      densities <- mvtnorm::dmvnorm(X,sigma = diag(1:length(X)))
+      densities <- exp(mvtnorm::dmvnorm(X,sigma = diag(1:length(X)),log = TRUE))
     } else if (is.matrix(X)) {
-      densities <- mvtnorm::dmvnorm(X,sigma = diag(1:dim(X)[2]))
+      densities <- exp(mvtnorm::dmvnorm(X,sigma = diag(1:dim(X)[2]),log = TRUE))
     } else {
       stop("States must be vectors or matrices.")
     }
