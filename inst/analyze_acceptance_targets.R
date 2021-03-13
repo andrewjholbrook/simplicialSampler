@@ -14,8 +14,8 @@ colnames(lambdaSearch) <- c("Dimension","lambda","meanESS","minESS",
 ####### spherical gaussian unscaled
 ###
 #
-df1 <- lambdaSearch[lambdaSearch$Scaled=="unscaled" & 
-                      lambdaSearch$TargetDistribution=="sphericalGaussian",]
+df1 <- lambdaSearch[(lambdaSearch$Scaled=="unscaled" & 
+                      lambdaSearch$TargetDistribution=="sphericalGaussian"),]
 
 keep <- vector() # get max min ESSs
 for (i in unique(df1$Dimension)) {
@@ -32,23 +32,95 @@ df1$isMaxMeanESS <- df1$meanESS %in% keep
 df1 <- df1[df1$isMaxMeanESS | df1$isMaxMinESS,]
 df1 <- df1[df1$Dimension > 2,]
 
-# plot(df1$Dimension,df1$lambda)
-# plot(df1$Dimension,df1$Acceptance)
+for (i in 1:dim(df1)[1]) {
+  if(df1$isMaxMinESS[i] == TRUE &
+     df1$isMaxMeanESS[i] == TRUE) {
+    dummyRow <- df1[i,]
+    dummyRow$isMaxMinESS <- FALSE
+    df1 <- rbind(df1, dummyRow)
+  }
+}
+df2 <- df1
 
-gg <- ggplot(data = df1, aes(x=Dimension,y=Acceptance,color=isMaxMinESS)) +
-  geom_point() +
+
+#
+###
+####### ill conditioned gaussian scaled
+###
+#
+
+df1 <- lambdaSearch[(lambdaSearch$Scaled=="scaled" & 
+                       lambdaSearch$TargetDistribution=="diagGaussian"),]
+
+keep <- vector() # get max min ESSs
+for (i in unique(df1$Dimension)) {
+  keep <- c(keep,max(df1$minESS[df1$Dimension==i]))
+}
+df1$isMaxMinESS <- df1$minESS %in% keep
+
+keep <- vector() # get max mean ESSs
+for (i in unique(df1$Dimension)) {
+  keep <- c(keep,max(df1$meanESS[df1$Dimension==i]))
+}
+df1$isMaxMeanESS <- df1$meanESS %in% keep
+
+df1 <- df1[df1$isMaxMeanESS | df1$isMaxMinESS,]
+df1 <- df1[df1$Dimension > 2,]
+
+for (i in 1:dim(df1)[1]) {
+  if(df1$isMaxMinESS[i] == TRUE &
+     df1$isMaxMeanESS[i] == TRUE) {
+    dummyRow <- df1[i,]
+    dummyRow$isMaxMinESS <- FALSE
+    df1 <- rbind(df1, dummyRow)
+  }
+}
+
+df1 <- rbind(df1,df2)
+
+colnames(df1)[9] <- "Criterion:"
+df1$`Gaussian:` <- factor(df1$TargetDistribution,labels = c("Ill-conditioned","Spherical"))
+
+gg <- ggplot(data = df1, aes(x=Dimension,y=Acceptance,color=`Criterion:`,
+                             shape=`Gaussian:`)) +
+  geom_hline(yintercept = 0.675) +
+  annotate(label="0.675",x=20,y=0.69,color="black",geom="text") +
+  geom_jitter() +
   stat_smooth() +
   theme_bw() +
-  scale_color_discrete(labels=c("Max-Min ESS","Max-Mean ESS")) +
-  theme(legend.title = element_blank())
+  ylab("Target acceptance") +
+  scale_color_discrete(labels=c("Max-Min ESS","Max-Mean ESS")) 
 
 gg
 
-gg2 <- ggplot(data = df1, aes(x=Dimension,y=lambda,color=isMaxMinESS)) +
-  geom_point() +
+gg2 <- ggplot(data = df1, aes(x=Dimension,y=lambda,color=`Criterion:`,
+              shape=`Gaussian:`)) +
+  geom_jitter() +
   stat_smooth() +
   theme_bw() +
-  scale_color_discrete(labels=c("Max-Min ESS","Max-Mean ESS")) +
-  theme(legend.title = element_blank())
+  ylab("Lambda") +
+  scale_color_discrete(labels=c("Max-Min ESS","Max-Mean ESS")) 
 
 gg2
+
+library(grid)
+library(gridExtra)
+
+source("inst/grid_arrange.R")
+ggsave(grid_arrange_shared_legend(gg,gg2),file="inst/figures/acceptFigOrig.pdf",
+       width = 9,height = 4)
+
+system2(command = "pdftk", 
+        args    = c("~/simplicialSampler/inst/figures/acceptFigOrig.pdf",
+                    "cat 2-end",
+                    "output ~/simplicialSampler/inst/figures/acceptFig.pdf") 
+)
+system2(command = "pdfcrop", 
+        args    = c("~/simplicialSampler/inst/figures/acceptFig.pdf", 
+                    "~/simplicialSampler/inst/figures/acceptFig.pdf") 
+)
+system2(command = "rm", 
+        args    = c("~/simplicialSampler/inst/figures/acceptFigOrig.pdf") 
+)
+
+
