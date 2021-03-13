@@ -11,27 +11,29 @@ source("R/simplicialSampler.R")
 ############ comparison to RWM
 #####
 #
-maxIt <- 100000
-targets <- c(0.27,0.33,0.42,0.47,0.56,0.62)
-dimensions <- c(2,4,8,16,32,64)
-for(i in 1:6) {
-    N <- dimensions[i]
-    ptm <- proc.time()
-    output1 <- simplicialSampler(N=N,x0=rep(0,N), maxIt = maxIt, lambda = 3,
-                        adaptStepSize = TRUE, targetAccept = targets[i],
-                        target = "sphericalGaussian")
-    time1 <- proc.time() - ptm
-    out.mcmc1 <- as.mcmc(output1[[1]])
-    eff1 <- effectiveSize(out.mcmc1)
-    ptm <- proc.time()
-    output2 <- randomWalk(N=N,x0=rep(0,N), maxIt = maxIt,adaptCov = FALSE,
-                          target = "sphericalGaussian")
-    time2 <- proc.time() - ptm
-    out.mcmc2 <- as.mcmc(output2[[1]])
-    eff2 <- effectiveSize(out.mcmc2)
-    
-    cat(N, " ",median(eff1)," ", min(eff1), " ", time1[3]," ",median(eff2)," ", min(eff2), " ", time2[3],"\n",
-        file="inst/output/rwmComparison.txt",
-        append=TRUE)
+maxIt <- 10000
+targets <- c(0.33,0.4,0.47,0.52,0.57,0.675,0.675)
+dimensions <- c(4,8,16,32,64,128,256)
+for(i in 1:7) {
+    for(k in 1:10) {
+        N <- dimensions[i]
+        ptm <- proc.time()
+        output1 <- simplicialSampler(N=N,x0=rep(0,N), maxIt = maxIt, lambda = 3,
+                                     adaptStepSize = TRUE, targetAccept = targets[i],
+                                     target = "sphericalGaussian")
+        time1 <- proc.time() - ptm
+        out.mcmc1 <- as.mcmc(output1[[1]])
+        eff1 <- effectiveSize(out.mcmc1)
+        ptm <- proc.time()
+        output2 <- randomWalk(N=N,x0=rep(0,N), maxIt = maxIt,adaptCov = FALSE,
+                              target = "sphericalGaussian")
+        time2 <- proc.time() - ptm
+        out.mcmc2 <- as.mcmc(output2[[1]])
+        eff2 <- effectiveSize(out.mcmc2)
+        
+        cat(N, " ",median(eff1)," ", min(eff1), " ", time1[3]," ",median(eff2)," ", min(eff2), " ", time2[3],"\n",
+            file="inst/output/rwmComparison.txt",
+            append=TRUE)   
+    }
 }
 
