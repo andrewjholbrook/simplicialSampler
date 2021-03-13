@@ -12,13 +12,13 @@ source("R/simplicialSampler.R")
 #####
 #
 maxIt <- 10000
-targets <- c(0.33,0.4,0.47,0.52,0.57,0.675,0.675)
-dimensions <- c(4,8,16,32,64,128,256)
-for(i in 1:7) {
+targets <- c(0.675,0.675) #c(0.33,0.4,0.47,0.52,0.57,0.675,0.675)
+dimensions <- c(512,1024) #c(4,8,16,32,64,128,256)
+for(i in 1:2) {
     for(k in 1:10) {
         N <- dimensions[i]
         ptm <- proc.time()
-        output1 <- simplicialSampler(N=N,x0=rep(0,N), maxIt = maxIt, lambda = 3,
+        output1 <- simplicialSampler(N=N,x0=rep(0,N), maxIt = maxIt, lambda = 6,
                                      adaptStepSize = TRUE, targetAccept = targets[i],
                                      target = "sphericalGaussian")
         time1 <- proc.time() - ptm
