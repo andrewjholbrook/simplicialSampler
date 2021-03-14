@@ -31,14 +31,14 @@ target <- function(X,distrib=NULL) {
   } else if (distrib=="diagGaussian") {
     if (is.vector(X)) { # RWM
       densities <- mvtnorm::dmvnorm(X,sigma = diag(1:length(X)), log = TRUE)
-    } else if (is.matrix(X)) {
+    } else if (is.matrix(X)) { # SS
       densities <- mvtnorm::dmvnorm(X,sigma = diag(1:dim(X)[2]),log = TRUE)
       densities <- exp(densities-logsumexp(densities)) # helps with underflow
     } else {
       stop("States must be vectors or matrices.")
     }
   } else if (distrib=="banana") {
-    densities <- banana(X,B=0.1) # TODO: place on log scale
+    densities <- banana(X,B=0.1) 
   } else if (distrib=="bimodalGaussian") {
     if (is.vector(X)) { # TODO: place on log scale
       densities <- 0.5*(mvtnorm::dmvnorm(X,mean=rep(5,length(X))) +
@@ -55,7 +55,7 @@ target <- function(X,distrib=NULL) {
   return(densities)
 }
 
-banana <- function(X,B) { # TODO: place on log scale
+banana <- function(X,B) { 
   # B is bananicity constant
   if (is.vector(X)) {
     N <- length(X)
@@ -68,7 +68,7 @@ banana <- function(X,B) { # TODO: place on log scale
   } else {
     stop("States must be vectors or matrices.")
   }
-  return(exp(exponent))
+  return(exponent)
 }
 
 proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL) {
