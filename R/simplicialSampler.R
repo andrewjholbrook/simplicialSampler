@@ -20,17 +20,17 @@ logsumexp <- function(x) {
 target <- function(X,distrib=NULL) {
   if(is.null(distrib)) stop("Target distribution must be specified.")
   if (distrib=="sphericalGaussian") {
-    if (is.vector(X)) {
-      densities <- mvtnorm::dmvnorm(X,sigma = diag(rep(1,length(X))))
-    } else if (is.matrix(X)) {
+    if (is.vector(X)) { # RWM
+      densities <- mvtnorm::dmvnorm(X,sigma = diag(rep(1,length(X))),log = TRUE)
+    } else if (is.matrix(X)) { # SS
       densities <- mvtnorm::dmvnorm(X,sigma = diag(rep(1,dim(X)[2])),log = TRUE)
       densities <- exp(densities-logsumexp(densities)) # helps with underflow
     } else {
       stop("States must be vectors or matrices.")
     }
   } else if (distrib=="diagGaussian") {
-    if (is.vector(X)) {
-      densities <- mvtnorm::dmvnorm(X,sigma = diag(1:length(X)))
+    if (is.vector(X)) { # RWM
+      densities <- mvtnorm::dmvnorm(X,sigma = diag(1:length(X)), log = TRUE)
     } else if (is.matrix(X)) {
       densities <- mvtnorm::dmvnorm(X,sigma = diag(1:dim(X)[2]),log = TRUE)
       densities <- exp(densities-logsumexp(densities)) # helps with underflow
@@ -38,12 +38,12 @@ target <- function(X,distrib=NULL) {
       stop("States must be vectors or matrices.")
     }
   } else if (distrib=="banana") {
-    densities <- banana(X,B=0.1)
+    densities <- banana(X,B=0.1) # TODO: place on log scale
   } else if (distrib=="bimodalGaussian") {
-    if (is.vector(X)) {
+    if (is.vector(X)) { # TODO: place on log scale
       densities <- 0.5*(mvtnorm::dmvnorm(X,mean=rep(5,length(X))) +
                           mvtnorm::dmvnorm(X))  
-    } else if (is.matrix(X)) {
+    } else if (is.matrix(X)) { # TODO: place on log scale
       densities <- 0.5*(mvtnorm::dmvnorm(X,mean=rep(5,ncol(X))) +
                           mvtnorm::dmvnorm(X))  
     } else {
@@ -55,7 +55,7 @@ target <- function(X,distrib=NULL) {
   return(densities)
 }
 
-banana <- function(X,B) {
+banana <- function(X,B) { # TODO: place on log scale
   # B is bananicity constant
   if (is.vector(X)) {
     N <- length(X)
@@ -176,8 +176,8 @@ randomWalk <- function(N, x0, maxIt=10000,
   for (i in 2:maxIt){
     if (adaptCov==FALSE) {
       xStar <- rnorm(N,sd=sigma) + chain[i-1,]
-      if(log(runif(1)) < sum(log(target(xStar,distrib = target))) -
-         sum(log(target(chain[i-1,],distrib = target)))){
+      if(log(runif(1)) < sum(target(xStar,distrib = target)) -
+         sum(target(chain[i-1,],distrib = target))){
         accept[i] <- 1
         chain[i,] <- xStar
       } else {
@@ -185,8 +185,8 @@ randomWalk <- function(N, x0, maxIt=10000,
       }
     } else { # with covariance
       xStar <- as.vector(t(chol(Ct))%*%rnorm(N) + chain[i-1,])
-      if(log(runif(1)) < sum(log(target(xStar,distrib = target))) -
-         sum(log(target(as.vector(chain[i-1,]),distrib = target)))){
+      if(log(runif(1)) < sum(target(xStar,distrib = target)) -
+         sum(target(as.vector(chain[i-1,]),distrib = target))){
         accept[i] <- 1
         chain[i,] <- xStar
       } else {

@@ -5,7 +5,7 @@ setwd("~/simplicialSampler/")
 
 source("R/simplicialSampler.R")
 
-maxIt <- 100000
+maxIt <- 10000
 N     <- 5
 
 # soherical target / adapt cov

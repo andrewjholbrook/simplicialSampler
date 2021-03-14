@@ -77,8 +77,8 @@ gg <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=Criterion, shape
   geom_jitter() +
   geom_line() +
   scale_y_continuous(trans = "log2") +
-  ylab("Relative improvement (uSS vs uRWM)") +
-  ggtitle("Unscaled algorithms for spherical Gaussian target") +
+  ylab("Relative improvement (SS/RWM)") +
+  ggtitle("Unscaled algorithms target spherical Gaussian") +
   theme_bw()
 gg
 
@@ -93,3 +93,37 @@ system2(command = "pdfcrop",
 )
 
 
+#
+#######
+################ ill gaussian
+#######
+#
+
+library(readr)
+library(ggplot2)
+library(reshape2)
+
+df <- read_table2("inst/output/scaledRwmComparison.txt",
+                  col_names = FALSE)
+df <- df[,-ncol(df)]
+df$X2 <- df$X2 / df$X5
+df$X3 <- df$X3 / df$X6
+df$X4 <- df$X4 / df$X7
+df <- df[,1:4]
+colnames(df) <- c("Dimension","Mean","Min","Slowdown")
+df <- melt(df, measure.vars=2:3,value.name = "ESS",variable.name = "Statistic")
+df$ESSs <- df$ESS / df$Slowdown
+df <- df[,-2]
+df <- melt(df, measure.vars=3:4,value.name = "Relative improvement",variable.name = "Criterion")
+df$Statistic <- factor(df$Statistic)
+df$Criterion <- factor(df$Criterion)
+
+
+gg2 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=Criterion, shape=Statistic)) +
+  geom_jitter() +
+  geom_line() +
+  scale_y_continuous(trans = "log2") +
+  ylab("Relative improvement (SS/RWM)") +
+  ggtitle("Scaled algorithms target \"ill\" Gaussian") +
+  theme_bw()
+gg2
