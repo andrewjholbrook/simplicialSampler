@@ -40,12 +40,12 @@ target <- function(X,distrib=NULL) {
   } else if (distrib=="banana") {
     densities <- banana(X,B=0.1) 
   } else if (distrib=="bimodalGaussian") {
-    if (is.vector(X)) { # TODO: place on log scale
-      densities <- 0.5*(mvtnorm::dmvnorm(X,mean=rep(5,length(X))) +
-                          mvtnorm::dmvnorm(X))  
-    } else if (is.matrix(X)) { # TODO: place on log scale
-      densities <- 0.5*(mvtnorm::dmvnorm(X,mean=rep(5,ncol(X))) +
-                          mvtnorm::dmvnorm(X))  
+    if (is.vector(X)) { 
+      densities <- log( 0.5*(mvtnorm::dmvnorm(X,mean=rep(5,length(X))) +
+                          mvtnorm::dmvnorm(X)) )
+    } else if (is.matrix(X)) { 
+      densities <- log( 0.5*(mvtnorm::dmvnorm(X,mean=rep(5,ncol(X))) +
+                          mvtnorm::dmvnorm(X)) )
     } else {
       stop("States must be vectors or matrices.")
     }
