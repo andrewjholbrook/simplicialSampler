@@ -1,21 +1,95 @@
-setwd("~/hedgingMCMC/")
+setwd("~/simplicialSampler/")
 
 library(readr)
+library(ggplot2)
+library(reshape2)
 
-lambdaSearch <- read_table2("output/lambdaSearch.txt", 
+# df <- read_table2("inst/output/rwmComparison.txt", 
+#                             col_names = FALSE)
+# df <- df[,-ncol(df)]
+# df <- rbind(as.matrix(df[,1:4]),as.matrix(df[,c(1,5:7)]))
+# df <- data.frame(df)
+# colnames(df) <- c("Dimension", "Mean","Min","Seconds")
+# df$Algorithm <- c(rep("uSS",nrow(df)/2),rep("uRWM",nrow(df)/2))
+# df <- melt(df,measure.vars=2:3,value.name = "ESS",variable.name = "Criterion")
+# df$ESSs <- df$ESS / df$Seconds
+# df$Criterion <- factor(df$Criterion)
+# df$Algorithm <- factor(df$Algorithm)
+# 
+# gg <- ggplot(df, aes(x=Dimension,y=ESS,color=Algorithm, shape=Criterion)) +
+#   geom_jitter() +
+#   geom_line() +
+#   ylab("Effective sample size") +
+#   ggtitle("Unscaled methods for spherical Gaussian target") +
+#   theme_bw()
+# gg
+# 
+# gg2 <- ggplot(df, aes(x=Dimension,y=ESSs,color=Algorithm, shape=Criterion)) +
+#   geom_jitter() +
+#   geom_line() +
+#   ylab("Effective sample size per second") +
+#   theme_bw()
+# gg2
+# 
+# library(grid)
+# library(gridExtra)
+# 
+# source("inst/grid_arrange.R")
+# ggsave(grid_arrange_shared_legend(gg,gg2),file="inst/figures/sphereNormFigOrig.pdf",
+#        width = 9,height = 4)
+# 
+# system2(command = "pdftk", 
+#         args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf",
+#                     "cat 2-end",
+#                     "output ~/simplicialSampler/inst/figures/sphereNormFig.pdf") 
+# )
+# system2(command = "pdfcrop", 
+#         args    = c("~/simplicialSampler/inst/figures/sphereNormFig.pdf", 
+#                     "~/simplicialSampler/inst/figures/sphereNormFig.pdf") 
+# )
+# system2(command = "rm", 
+#         args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf") 
+# )
+
+
+setwd("~/simplicialSampler/")
+
+library(readr)
+library(ggplot2)
+library(reshape2)
+
+df <- read_table2("inst/output/rwmComparison.txt",
                             col_names = FALSE)
-lambdaSearch <- lambdaSearch[,1:6]
-colnames(lambdaSearch) <- c("Dimension","lambda","meanESS","minESS",
-                            "Acceptance","TargetAcceptance")
-keep <- vector()
-for (i in unique(lambdaSearch$Dimension)) {
-  keep <- c(keep,max(lambdaSearch$minESS[lambdaSearch$Dimension==i]))
-}
+df <- df[,-ncol(df)]
+df$X2 <- df$X2 / df$X5
+df$X3 <- df$X3 / df$X6
+df$X4 <- df$X4 / df$X7
+df <- df[,1:4]
+colnames(df) <- c("Dimension","Mean","Min","Slowdown")
+df <- melt(df, measure.vars=2:3,value.name = "ESS",variable.name = "Statistic")
+df$ESSs <- df$ESS / df$Slowdown
+df <- df[,-2]
+df <- melt(df, measure.vars=3:4,value.name = "Relative improvement",variable.name = "Criterion")
+df$Statistic <- factor(df$Statistic)
+df$Criterion <- factor(df$Criterion)
 
-df <- lambdaSearch[lambdaSearch$minESS %in% keep,]
-View(df)
+gg <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=Criterion, shape=Statistic)) +
+  geom_jitter() +
+  geom_line() +
+  scale_y_continuous(trans = "log2") +
+  ylab("Relative improvement (uSS vs uRWM)") +
+  ggtitle("Unscaled algorithms for spherical Gaussian target") +
+  theme_bw()
+gg
 
-df <- df[order(df$Dimension),]
-plot(df$Dimension,df$lambda)
-lines(x=seq(from=0,to=64),y=seq(from=0,to=64)^(1/6))
-mod <- lm(df$lambda ~ df$Dimension + I(df$Dimension^2))
+
+source("inst/grid_arrange.R")
+ggsave(gg,file="inst/figures/sphereNormFig.pdf",
+       width = 4.5,height = 3)
+
+system2(command = "pdfcrop",
+        args    = c("~/simplicialSampler/inst/figures/sphereNormFig.pdf",
+                    "~/simplicialSampler/inst/figures/sphereNormFig.pdf")
+)
+
+
