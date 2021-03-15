@@ -5,7 +5,7 @@ source("R/simplicialSampler.R")
 library(coda)
 
 n <- 6
-results <- simplicialSampler(N=n,x0=rep(0,n), maxIt = 100000,lambda=2,
+results <- simplicialSampler(N=n,x0=rep(0,n), maxIt = 10000,lambda=2,
                      adaptStepSize = TRUE,targetAccept = 0.25,
                      target = "banana")
 out.mcmc <- as.mcmc(results[[1]])
@@ -17,8 +17,8 @@ plot(results[[1]][,2],results[[1]][,3])
 results[[3]] # lambda
 
 # MH
-results2 <- randomWalk(N=n,x0=rep(0,n), maxIt = 100000,
-                     adaptStepSize = TRUE,targetAccept = 0.25,
+results2 <- randomWalk(N=n,x0=rep(0,n), maxIt = 10000,
+                     adaptCov = TRUE,
                      target = "banana")
 out.mcmc2 <- as.mcmc(results2[[1]])
 effectiveSize(out.mcmc2)

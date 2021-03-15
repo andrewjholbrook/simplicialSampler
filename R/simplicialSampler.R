@@ -60,16 +60,16 @@ banana <- function(X,B) {
   # B is bananicity constant
   if (is.vector(X)) {
     N <- length(X)
-    exponent <- - X[1]^2/200 - 0.5*(X[2]+B*X[1]^2-100*B)^2 -
+    output <- - X[1]^2/200 - 0.5*(X[2]+B*X[1]^2-100*B)^2 -
       0.5*sum(X[3:N]^2)
   } else if (is.matrix(X)) {
     N <- dim(X)[2]
-    exponent <- - X[,1]^2/200 - 0.5*(X[,2]+B*X[,1]^2-100*B)^2 -
-      0.5*rowSums(X[,3:N]^2)
+    output <- exp( - X[,1]^2/200 - 0.5*(X[,2]+B*X[,1]^2-100*B)^2 -
+      0.5*rowSums(X[,3:N]^2) )
   } else {
     stop("States must be vectors or matrices.")
   }
-  return(exponent)
+  return(output)
 }
 
 proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL) {
