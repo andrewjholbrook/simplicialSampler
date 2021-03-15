@@ -83,24 +83,25 @@ df1$`Gaussian:` <- factor(df1$TargetDistribution,labels = c("Ill-conditioned","S
 
 gg <- ggplot(data = df1, aes(x=Dimension,y=Acceptance,color=`Criterion:`,
                              shape=`Gaussian:`)) +
-  geom_hline(yintercept = 0.675) +
   annotate(label="0.675",x=20,y=0.69,color="black",geom="text") +
   geom_jitter() +
-  stat_smooth() +
+  stat_smooth(se=FALSE) +
+  geom_hline(yintercept = 0.675) +
   theme_bw() +
   ylab("Target acceptance") +
-  scale_color_discrete(labels=c("Max-Min ESS","Max-Mean ESS")) 
+  scale_color_manual(labels=c("Max-Min ESS","Max-Mean ESS"),
+                       values=c("maroon1","green3")) 
 
 gg
 
 gg2 <- ggplot(data = df1, aes(x=Dimension,y=lambda,color=`Criterion:`,
               shape=`Gaussian:`)) +
   geom_jitter() +
-  stat_smooth() +
+  stat_smooth(se=FALSE) +
   theme_bw() +
   ylab("Lambda") +
-  scale_color_discrete(labels=c("Max-Min ESS","Max-Mean ESS")) 
-
+  scale_color_manual(labels=c("Max-Min ESS","Max-Mean ESS"),
+                     values=c("maroon1","green3")) 
 gg2
 
 library(grid)

@@ -41,10 +41,10 @@ target <- function(X,distrib=NULL) {
     densities <- banana(X,B=0.1) 
   } else if (distrib=="bimodalGaussian") {
     if (is.vector(X)) { 
-      densities <- log( 0.5*(mvtnorm::dmvnorm(X,mean=c(5,rep(0,length(X)-1))) +
+      densities <- log( 0.5*(mvtnorm::dmvnorm(X,mean=rep(5,length(X))) +
                           mvtnorm::dmvnorm(X)) )
     } else if (is.matrix(X)) { 
-      densities <- log( 0.5*(mvtnorm::dmvnorm(X,mean=c(5,rep(0,ncol(X)-1))) +
+      densities <- log( 0.5*(mvtnorm::dmvnorm(X,mean=rep(5,ncol(X))) +
                           mvtnorm::dmvnorm(X)) )
       densities <- exp(densities-logsumexp(densities)) # helps with underflow
     } else {

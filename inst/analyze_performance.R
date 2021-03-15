@@ -79,6 +79,7 @@ gg <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, sh
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("Relative improvement (SS/RWM)") +
   ggtitle("Unscaled algorithms target spherical Gaussian") +
+  scale_color_manual(values=c("maroon1","green3")) +
   theme_bw()
 gg
 
@@ -125,6 +126,7 @@ gg2 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, s
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("") +
   ggtitle("Scaled algorithms target \"ill\" Gaussian") +
+  scale_color_manual(values=c("maroon1","green3")) +
   theme_bw()
 gg2
 
