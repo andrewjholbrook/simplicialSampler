@@ -66,31 +66,31 @@ df$X3 <- df$X3 / df$X6
 df$X4 <- df$X4 / df$X7
 df <- df[,1:4]
 colnames(df) <- c("Dimension","Mean","Min","Slowdown")
-df <- melt(df, measure.vars=2:3,value.name = "ESS",variable.name = "Statistic")
+df <- melt(df, measure.vars=2:3,value.name = "ESS",variable.name = "Statistic:")
 df$ESSs <- df$ESS / df$Slowdown
 df <- df[,-2]
-df <- melt(df, measure.vars=3:4,value.name = "Relative improvement",variable.name = "Criterion")
+df <- melt(df, measure.vars=3:4,value.name = "Relative improvement",variable.name = "Criterion:")
 df$Statistic <- factor(df$Statistic)
 df$Criterion <- factor(df$Criterion)
 
-gg <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=Criterion, shape=Statistic)) +
+gg <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
   geom_jitter() +
   geom_line() +
-  scale_y_continuous(trans = "log2") +
+  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("Relative improvement (SS/RWM)") +
   ggtitle("Unscaled algorithms target spherical Gaussian") +
   theme_bw()
 gg
 
 
-source("inst/grid_arrange.R")
-ggsave(gg,file="inst/figures/sphereNormFig.pdf",
-       width = 4.5,height = 3)
-
-system2(command = "pdfcrop",
-        args    = c("~/simplicialSampler/inst/figures/sphereNormFig.pdf",
-                    "~/simplicialSampler/inst/figures/sphereNormFig.pdf")
-)
+# source("inst/grid_arrange.R")
+# ggsave(gg,file="inst/figures/sphereNormFig.pdf",
+#        width = 4.5,height = 3)
+# 
+# system2(command = "pdfcrop",
+#         args    = c("~/simplicialSampler/inst/figures/sphereNormFig.pdf",
+#                     "~/simplicialSampler/inst/figures/sphereNormFig.pdf")
+# )
 
 
 #
@@ -111,19 +111,41 @@ df$X3 <- df$X3 / df$X6
 df$X4 <- df$X4 / df$X7
 df <- df[,1:4]
 colnames(df) <- c("Dimension","Mean","Min","Slowdown")
-df <- melt(df, measure.vars=2:3,value.name = "ESS",variable.name = "Statistic")
+df <- melt(df, measure.vars=2:3,value.name = "ESS",variable.name = "Statistic:")
 df$ESSs <- df$ESS / df$Slowdown
 df <- df[,-2]
-df <- melt(df, measure.vars=3:4,value.name = "Relative improvement",variable.name = "Criterion")
+df <- melt(df, measure.vars=3:4,value.name = "Relative improvement",variable.name = "Criterion:")
 df$Statistic <- factor(df$Statistic)
 df$Criterion <- factor(df$Criterion)
 
 
-gg2 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=Criterion, shape=Statistic)) +
+gg2 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
   geom_jitter() +
   geom_line() +
-  scale_y_continuous(trans = "log2") +
-  ylab("Relative improvement (SS/RWM)") +
+  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
+  ylab("") +
   ggtitle("Scaled algorithms target \"ill\" Gaussian") +
   theme_bw()
 gg2
+
+
+library(grid)
+library(gridExtra)
+
+source("inst/grid_arrange.R")
+ggsave(grid_arrange_shared_legend(gg,gg2),file="inst/figures/sphereNormFigOrig.pdf",
+       width = 9,height = 4)
+
+system2(command = "pdftk",
+        args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf",
+                    "cat 2-end",
+                    "output ~/simplicialSampler/inst/figures/rwmComparisonFig.pdf")
+)
+system2(command = "pdfcrop",
+        args    = c("~/simplicialSampler/inst/figures/rwmComparisonFig.pdf",
+                    "~/simplicialSampler/inst/figures/rwmComparisonFig.pdf")
+)
+system2(command = "rm",
+        args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf")
+)
+
