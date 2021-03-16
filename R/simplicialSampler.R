@@ -23,7 +23,7 @@ target <- function(X,distrib=NULL) {
     if (is.vector(X)) { # RWM
       densities <- mvnfast::dmvn(X,sigma = diag(rep(1,length(X))),
                                  mu= rep(0,length(X)),
-                                 log = TRUE, ncores=10)
+                                 log = TRUE, ncores=1)
     } else if (is.matrix(X)) { # SS
       densities <- mvnfast::dmvn(X,sigma = diag(rep(1,dim(X)[2])),
                                  mu=rep(0,dim(X)[2]),
@@ -36,7 +36,7 @@ target <- function(X,distrib=NULL) {
     if (is.vector(X)) { # RWM
       densities <- mvnfast::dmvn(X,sigma = diag(1:length(X)),
                                  mu= rep(0,length(X)),
-                                 log = TRUE, ncores=10)
+                                 log = TRUE, ncores=1)
     } else if (is.matrix(X)) { # SS
       densities <- mvnfast::dmvn(X,sigma = diag(1:dim(X)[2]),
                                  mu=rep(0,dim(X)[2]),
