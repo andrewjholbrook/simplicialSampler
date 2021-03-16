@@ -78,7 +78,7 @@ gg <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, sh
   geom_line() +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("Relative improvement (SS/RWM)") +
-  ggtitle("Unscaled algorithms target spherical Gaussian") +
+  ggtitle("Unscaled algorithms / spherical target") +
   scale_color_manual(values=c("maroon1","green3")) +
   theme_bw()
 gg
@@ -125,18 +125,56 @@ gg2 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, s
   geom_line() +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("") +
-  ggtitle("Scaled algorithms target \"ill\" Gaussian") +
+  ggtitle("Scaled algorithms / diagonal \"ill\" target") +
   scale_color_manual(values=c("maroon1","green3")) +
   theme_bw()
 gg2
+
+
+#
+#######
+################ fully ill gaussian
+#######
+#
+
+library(readr)
+library(ggplot2)
+library(reshape2)
+
+df <- read_table2("inst/output/fullyIllGaussianSequential.txt",
+                  col_names = FALSE)
+df <- df[,-ncol(df)]
+df$X2 <- df$X2 / df$X5
+df$X3 <- df$X3 / df$X6
+df$X4 <- df$X4 / df$X7
+df <- df[,1:4]
+colnames(df) <- c("Dimension","Mean","Min","Slowdown")
+df <- melt(df, measure.vars=2:3,value.name = "ESS",variable.name = "Statistic:")
+df$ESSs <- df$ESS / df$Slowdown
+df <- df[,-2]
+df <- melt(df, measure.vars=3:4,value.name = "Relative improvement",variable.name = "Criterion:")
+df$Statistic <- factor(df$Statistic)
+df$Criterion <- factor(df$Criterion)
+
+
+gg3 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
+  geom_jitter() +
+  geom_line() +
+  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
+  ylab("") +
+  ggtitle("Scaled algorithms / \"fully ill\" target") +
+  scale_color_manual(values=c("maroon1","green3")) +
+  theme_bw()
+gg3
+
 
 
 library(grid)
 library(gridExtra)
 
 source("inst/grid_arrange.R")
-ggsave(grid_arrange_shared_legend(gg,gg2),file="inst/figures/sphereNormFigOrig.pdf",
-       width = 9,height = 4)
+ggsave(grid_arrange_shared_legend(gg,gg2,gg3),file="inst/figures/sphereNormFigOrig.pdf",
+       width = 12,height = 4)
 
 system2(command = "pdftk",
         args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf",
