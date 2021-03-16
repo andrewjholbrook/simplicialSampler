@@ -1,4 +1,4 @@
-library(mvnfast)
+library(mvtnorm)
 library(coda)
 library(pracma)
 
@@ -32,7 +32,7 @@ for(i in 1:8) {
         eff2 <- effectiveSize(out.mcmc2)
         
         cat(N, " ",median(eff1)," ", min(eff1), " ", time1[3]," ",median(eff2)," ", min(eff2), " ", time2[3],"\n",
-            file="inst/output/rwmComparisonMvnFast.txt",
+            file="inst/output/rwmComparison.txt",
             append=TRUE)   
     }
 }

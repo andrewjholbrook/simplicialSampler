@@ -17,30 +17,47 @@ logsumexp <- function(x) {
   return(c+log(sum(exp(x-c))))
 }
 
-target <- function(X,distrib=NULL) {
+target <- function(X,distrib=NULL,parallel=FALSE) {
   if(is.null(distrib)) stop("Target distribution must be specified.")
   if (distrib=="sphericalGaussian") {
     if (is.vector(X)) { # RWM
-      densities <- mvnfast::dmvn(X,sigma = diag(rep(1,length(X))),
-                                 mu= rep(0,length(X)),
-                                 log = TRUE, ncores=1)
+      if (parallel) {
+        densities <- mvnfast::dmvn(X,sigma = diag(rep(1,length(X))),
+                                   mu= rep(0,length(X)),
+                                   log = TRUE, ncores=1)
+      } else {
+        densities <- mvtnorm::dmvnorm(X,sigma = diag(rep(1,length(X))),
+                                      log = TRUE)
+      }
     } else if (is.matrix(X)) { # SS
-      densities <- mvnfast::dmvn(X,sigma = diag(rep(1,dim(X)[2])),
-                                 mu=rep(0,dim(X)[2]),
-                                 log = TRUE, ncores=10)
+      if (parallel) {
+        densities <- mvnfast::dmvn(X,sigma = diag(rep(1,dim(X)[2])),
+                                   mu=rep(0,dim(X)[2]),
+                                   log = TRUE, ncores=10)
+      } else {
+        densities <- mvtnorm::dmvnorm(X,sigma = diag(rep(1,dim(X)[2])),log = TRUE)
+      }
       densities <- exp(densities-logsumexp(densities)) # helps with underflow
     } else {
       stop("States must be vectors or matrices.")
     }
   } else if (distrib=="diagGaussian") {
     if (is.vector(X)) { # RWM
-      densities <- mvnfast::dmvn(X,sigma = diag(1:length(X)),
-                                 mu= rep(0,length(X)),
-                                 log = TRUE, ncores=1)
+      if (parallel) {
+        densities <- mvnfast::dmvn(X,sigma = diag(1:length(X)),
+                                   mu= rep(0,length(X)),
+                                   log = TRUE, ncores=1)
+      } else {
+        densities <- mvtnorm::dmvnorm(X,sigma = diag(1:length(X)), log = TRUE)
+      }
     } else if (is.matrix(X)) { # SS
-      densities <- mvnfast::dmvn(X,sigma = diag(1:dim(X)[2]),
-                                 mu=rep(0,dim(X)[2]),
-                                 log = TRUE, ncores=10)              
+      if (parallel) {
+        densities <- mvnfast::dmvn(X,sigma = diag(1:dim(X)[2]),
+                                   mu=rep(0,dim(X)[2]),
+                                   log = TRUE, ncores=10)
+      } else {
+        densities <- mvtnorm::dmvnorm(X,sigma = diag(1:dim(X)[2]),log = TRUE)
+      }
       densities <- exp(densities-logsumexp(densities)) # helps with underflow
     } else {
       stop("States must be vectors or matrices.")
@@ -50,10 +67,33 @@ target <- function(X,distrib=NULL) {
   } else if (distrib=="bimodalGaussian") {
     if (is.vector(X)) { 
       densities <- log( 0.5*(mvtnorm::dmvnorm(X,mean=rep(5,length(X))) +
-                          mvtnorm::dmvnorm(X)) )
+                               mvtnorm::dmvnorm(X)) )
     } else if (is.matrix(X)) { 
       densities <- log( 0.5*(mvtnorm::dmvnorm(X,mean=rep(5,ncol(X))) +
-                          mvtnorm::dmvnorm(X)) )
+                               mvtnorm::dmvnorm(X)) )
+      densities <- exp(densities-logsumexp(densities)) # helps with underflow
+    } else {
+      stop("States must be vectors or matrices.")
+    }
+  } else if (distrib == "fullyIllGaussian") {
+    if (is.vector(X)) { # RWM
+      C <- readRDS(file = paste0("inst/savedCovs/cov",length(X),".rds"))
+      if (parallel) {
+        densities <- mvnfast::dmvn(X,sigma = C,
+                                   mu= rep(0,length(X)),
+                                   log = TRUE, ncores=1)
+      } else {
+        densities <- mvtnorm::dmvnorm(X,sigma = C, log = TRUE)
+      }
+    } else if (is.matrix(X)) { # SS
+      C <- readRDS(file = paste0("inst/savedCovs/cov",dim(X)[2],".rds"))
+      if (parallel) {
+        densities <- mvnfast::dmvn(X,sigma = C,
+                                   mu=rep(0,dim(X)[2]),
+                                   log = TRUE, ncores=10)
+      } else {
+        densities <- mvtnorm::dmvnorm(X,sigma = C,log = TRUE)
+      }
       densities <- exp(densities-logsumexp(densities)) # helps with underflow
     } else {
       stop("States must be vectors or matrices.")
@@ -73,7 +113,7 @@ banana <- function(X,B) {
   } else if (is.matrix(X)) {
     N <- dim(X)[2]
     output <- exp( - X[,1]^2/200 - 0.5*(X[,2]+B*X[,1]^2-100*B)^2 -
-      0.5*rowSums(X[,3:N]^2) )
+                     0.5*rowSums(X[,3:N]^2) )
   } else {
     stop("States must be vectors or matrices.")
   }
@@ -101,7 +141,7 @@ proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL) {
 }
 
 simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
-                      targetAccept=0.5,target=NULL,adaptScales=FALSE) {
+                              targetAccept=0.5,target=NULL,adaptScales=FALSE) {
   if(N!=length(x0)) stop("Dimension mismatch.")
   
   chain <- matrix(0,maxIt,N)
@@ -173,13 +213,13 @@ simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
 randomWalk <- function(N, x0, maxIt=10000,
                        adaptCov=FALSE, target=NULL) {
   if(N!=length(x0)) stop("Dimension mismatch.")
-
+  
   chain <- matrix(0,maxIt,N)
   
   sigma <- 2.4/sqrt(N)
   Ct <- sigma^2*diag(N) 
   xbar <- x0
-
+  
   accept <- rep(0,maxIt)
   chain[1,] <- x0
   for (i in 2:maxIt){
