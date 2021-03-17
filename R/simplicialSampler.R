@@ -262,3 +262,69 @@ randomWalk <- function(N, x0, maxIt=10000,
     return(list(chain,ratio,sigma,diag(N)))
   }
 }
+
+
+MTM <- function(N, x0, maxIt=10000,
+                       adaptCov=FALSE, targetName=NULL) {
+  if(N!=length(x0)) stop("Dimension mismatch.")
+  
+  chain <- matrix(0,maxIt,N)
+  
+  sigma <- 2.4/sqrt(N)
+  Ct <- sigma^2*diag(N) 
+  xbar <- x0
+  
+  accept <- rep(0,maxIt)
+  chain[1,] <- x0
+  for (i in 2:maxIt){
+    if (adaptCov==FALSE) {
+      ys   <- matrix(rnorm(N*N,sd=sigma),N,N) + chain[i-1,]
+      targStars <- target(t(ys),distrib = targetName)
+      yStar     <- as.vector(ys[,sample(1:N,1,prob = targStars)])
+      xs   <- cbind(matrix(rnorm(N*(N-1),sd=sigma),N,N-1) + yStar, chain[i-1,])
+      allTargets <- target(t(cbind(xs,ys)),distrib = targetName)
+      xTargsSum <- sum( allTargets[1:N] )
+      yTargsSum <- sum( allTargets[(N+1):(2*N)] )
+      
+      if(runif(1) < yTargsSum / xTargsSum){
+        accept[i] <- 1
+        chain[i,] <- yStar
+      } else {
+        chain[i,] <- chain[i-1,]
+      }
+    } else { # with covariance
+      ys   <- t(chol(Ct))%*%matrix(rnorm(N*N,sd=sigma),N,N) + chain[i-1,]
+      targStars <- target(t(ys),distrib = targetName)
+      yStar     <- as.vector(ys[,sample(1:N,1,prob = targStars)])
+      xs        <- cbind(t(chol(Ct))%*%matrix(rnorm(N*(N-1),sd=sigma),N,N-1) + yStar, chain[i-1,])
+      allTargets <- target(t(cbind(xs,ys)),distrib = targetName)
+      xTargsSum <- sum( allTargets[1:N] )
+      yTargsSum <- sum( allTargets[(N+1):(2*N)] )
+      
+      if(runif(1) < yTargsSum / xTargsSum){
+        accept[i] <- 1
+        chain[i,] <- yStar
+      } else {
+        chain[i,] <- chain[i-1,]
+      }
+      updt <- recursion(Ct=Ct,
+                        XbarMinus=xbar,
+                        Xt=chain[i,],
+                        epsilon = 0.000001,
+                        sd=sigma^2,
+                        t=i,
+                        warmup=maxIt/10)
+      Ct <- updt[[1]]
+      xbar <- updt[[2]]
+    }
+    
+    if(i %% 1000 == 0) cat(i,"\n")
+  }
+  ratio <- sum(accept)/(maxIt-1)
+  cat("Acceptance ratio: ", ratio,"\n")
+  if (adaptCov) {
+    return(list(chain,ratio,sigma,Ct))
+  } else{
+    return(list(chain,ratio,sigma,diag(N)))
+  }
+}
