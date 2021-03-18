@@ -24,6 +24,7 @@ df$Criterion <- factor(df$Criterion)
 gg <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
   geom_point() +
   geom_smooth() +
+  xlab(NULL) +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("Relative improvement (SS/RWM)") +
   ggtitle("Unscaled algorithms / spherical target") +
@@ -51,7 +52,6 @@ gg4 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, s
   geom_smooth() +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32,64,128,256,512),limits=c(0.75,512)) +
   ylab("Relative improvement (SS/MTM)") +
-  ggtitle("") +
   scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
 gg4
@@ -98,6 +98,7 @@ gg2 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, s
   geom_smooth() +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("") +
+  xlab(NULL) +
   ggtitle("Scaled algorithms / diagonal \"ill\" target") +
   scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
@@ -124,7 +125,6 @@ gg5 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, s
   geom_smooth() +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32,64,128,256,512),limits=c(0.75,512)) +
   ylab("") +
-  ggtitle("") +
   scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
 gg5
@@ -161,6 +161,7 @@ gg3 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, s
   geom_smooth() +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("") +
+  xlab(NULL) +
   ggtitle("Scaled algorithms / full \"ill\" target") +
   scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
@@ -187,7 +188,6 @@ gg6 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, s
   geom_smooth() +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32,64,128,256,512),limits=c(0.75,512)) +
   ylab("") +
-  ggtitle("") +
   scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
 gg6
@@ -199,7 +199,7 @@ library(gridExtra)
 source("inst/grid_arrange.R")
 ggsave(grid_arrange_shared_legend(gg,gg2,gg3,gg4,gg5,gg6,ncol = 3,nrow=2),
        file="inst/figures/sphereNormFigOrig.pdf",
-       width = 12,height = 7.5)
+       width = 12,height = 7)
 
 system2(command = "pdftk",
         args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf",
