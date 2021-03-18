@@ -2,6 +2,8 @@ setwd("~/simplicialSampler/")
 
 library(readr)
 library(ggplot2)
+library(wesanderson)
+pal <- wes_palette("FantasticFox1", 5, type = "discrete")
 
 lambdaSearch <- read_table2("inst/output/lambdaSearch.txt", 
                             col_names = FALSE)
@@ -91,7 +93,7 @@ gg <- ggplot(data = df1, aes(x=Dimension,y=Acceptance,color=`Criterion:`,
   ylab("Target acceptance") +
   ggtitle("Emprically optimal acceptance rates")+
   scale_color_manual(labels=c("Max-Min ESS","Max-Mean ESS"),
-                       values=c("maroon1","green3")) 
+                     values=c(pal[3],pal[5])) 
 
 gg
 
@@ -103,7 +105,7 @@ gg2 <- ggplot(data = df1, aes(x=Dimension,y=lambda,color=`Criterion:`,
   ylab("Lambda") +
   ggtitle("Empirically optimal simplicial edge lengths")+
   scale_color_manual(labels=c("Max-Min ESS","Max-Mean ESS"),
-                     values=c("maroon1","green3")) 
+                     values=c(pal[3],pal[5])) 
 gg2
 
 library(grid)
