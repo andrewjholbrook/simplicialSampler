@@ -3,60 +3,8 @@ setwd("~/simplicialSampler/")
 library(readr)
 library(ggplot2)
 library(reshape2)
-
-# df <- read_table2("inst/output/rwmComparison.txt", 
-#                             col_names = FALSE)
-# df <- df[,-ncol(df)]
-# df <- rbind(as.matrix(df[,1:4]),as.matrix(df[,c(1,5:7)]))
-# df <- data.frame(df)
-# colnames(df) <- c("Dimension", "Mean","Min","Seconds")
-# df$Algorithm <- c(rep("uSS",nrow(df)/2),rep("uRWM",nrow(df)/2))
-# df <- melt(df,measure.vars=2:3,value.name = "ESS",variable.name = "Criterion")
-# df$ESSs <- df$ESS / df$Seconds
-# df$Criterion <- factor(df$Criterion)
-# df$Algorithm <- factor(df$Algorithm)
-# 
-# gg <- ggplot(df, aes(x=Dimension,y=ESS,color=Algorithm, shape=Criterion)) +
-#   geom_jitter() +
-#   geom_line() +
-#   ylab("Effective sample size") +
-#   ggtitle("Unscaled methods for spherical Gaussian target") +
-#   theme_bw()
-# gg
-# 
-# gg2 <- ggplot(df, aes(x=Dimension,y=ESSs,color=Algorithm, shape=Criterion)) +
-#   geom_jitter() +
-#   geom_line() +
-#   ylab("Effective sample size per second") +
-#   theme_bw()
-# gg2
-# 
-# library(grid)
-# library(gridExtra)
-# 
-# source("inst/grid_arrange.R")
-# ggsave(grid_arrange_shared_legend(gg,gg2),file="inst/figures/sphereNormFigOrig.pdf",
-#        width = 9,height = 4)
-# 
-# system2(command = "pdftk", 
-#         args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf",
-#                     "cat 2-end",
-#                     "output ~/simplicialSampler/inst/figures/sphereNormFig.pdf") 
-# )
-# system2(command = "pdfcrop", 
-#         args    = c("~/simplicialSampler/inst/figures/sphereNormFig.pdf", 
-#                     "~/simplicialSampler/inst/figures/sphereNormFig.pdf") 
-# )
-# system2(command = "rm", 
-#         args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf") 
-# )
-
-
-setwd("~/simplicialSampler/")
-
-library(readr)
-library(ggplot2)
-library(reshape2)
+library(wesanderson)
+pal <- wes_palette("FantasticFox1", 5, type = "discrete")
 
 df <- read_table2("inst/output/rwmComparison.txt",
                             col_names = FALSE)
@@ -74,14 +22,39 @@ df$Statistic <- factor(df$Statistic)
 df$Criterion <- factor(df$Criterion)
 
 gg <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
-  geom_jitter() +
-  geom_line() +
+  geom_point() +
+  geom_smooth() +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("Relative improvement (SS/RWM)") +
   ggtitle("Unscaled algorithms / spherical target") +
-  scale_color_manual(values=c("maroon1","green3")) +
+  scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
 gg
+
+df <- read_table2("inst/output/rwmComparison.txt",
+                  col_names = FALSE)
+df <- df[,-ncol(df)]
+df$X2 <- df$X2 / df$X8
+df$X3 <- df$X3 / df$X9
+df$X4 <- df$X4 / df$X10
+df <- df[,1:4]
+colnames(df) <- c("Dimension","Mean","Min","Slowdown")
+df <- melt(df, measure.vars=2:3,value.name = "ESS",variable.name = "Statistic:")
+df$ESSs <- df$ESS / df$Slowdown
+df <- df[,-2]
+df <- melt(df, measure.vars=3:4,value.name = "Relative improvement",variable.name = "Criterion:")
+df$Statistic <- factor(df$Statistic)
+df$Criterion <- factor(df$Criterion)
+
+gg4 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
+  geom_point() +
+  geom_smooth() +
+  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32,64,128,256,512),limits=c(0.75,512)) +
+  ylab("Relative improvement (SS/MTM)") +
+  ggtitle("") +
+  scale_color_manual(values=c(pal[3],pal[5])) +
+  theme_bw()
+gg4
 
 
 # source("inst/grid_arrange.R")
@@ -121,14 +94,40 @@ df$Criterion <- factor(df$Criterion)
 
 
 gg2 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
-  geom_jitter() +
-  geom_line() +
+  geom_point() +
+  geom_smooth() +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("") +
   ggtitle("Scaled algorithms / diagonal \"ill\" target") +
-  scale_color_manual(values=c("maroon1","green3")) +
+  scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
 gg2
+
+df <- read_table2("inst/output/scaledRwmComparison.txt",
+                  col_names = FALSE)
+df <- df[,-ncol(df)]
+df$X2 <- df$X2 / df$X8
+df$X3 <- df$X3 / df$X9
+df$X4 <- df$X4 / df$X10
+df <- df[,1:4]
+colnames(df) <- c("Dimension","Mean","Min","Slowdown")
+df <- melt(df, measure.vars=2:3,value.name = "ESS",variable.name = "Statistic:")
+df$ESSs <- df$ESS / df$Slowdown
+df <- df[,-2]
+df <- melt(df, measure.vars=3:4,value.name = "Relative improvement",variable.name = "Criterion:")
+df$Statistic <- factor(df$Statistic)
+df$Criterion <- factor(df$Criterion)
+
+
+gg5 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
+  geom_point() +
+  geom_smooth() +
+  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32,64,128,256,512),limits=c(0.75,512)) +
+  ylab("") +
+  ggtitle("") +
+  scale_color_manual(values=c(pal[3],pal[5])) +
+  theme_bw()
+gg5
 
 
 #
@@ -158,23 +157,49 @@ df$Criterion <- factor(df$Criterion)
 
 
 gg3 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
-  geom_jitter() +
-  geom_line() +
+  geom_point() +
+  geom_smooth() +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("") +
-  ggtitle("Scaled algorithms / \"fully ill\" target") +
-  scale_color_manual(values=c("maroon1","green3")) +
+  ggtitle("Scaled algorithms / full \"ill\" target") +
+  scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
 gg3
 
+df <- read_table2("inst/output/fullyIllGaussianSequential.txt",
+                  col_names = FALSE)
+df <- df[,-ncol(df)]
+df$X2 <- df$X2 / df$X8
+df$X3 <- df$X3 / df$X9
+df$X4 <- df$X4 / df$X10
+df <- df[,1:4]
+colnames(df) <- c("Dimension","Mean","Min","Slowdown")
+df <- melt(df, measure.vars=2:3,value.name = "ESS",variable.name = "Statistic:")
+df$ESSs <- df$ESS / df$Slowdown
+df <- df[,-2]
+df <- melt(df, measure.vars=3:4,value.name = "Relative improvement",variable.name = "Criterion:")
+df$Statistic <- factor(df$Statistic)
+df$Criterion <- factor(df$Criterion)
+
+
+gg6 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
+  geom_point() +
+  geom_smooth() +
+  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32,64,128,256,512),limits=c(0.75,512)) +
+  ylab("") +
+  ggtitle("") +
+  scale_color_manual(values=c(pal[3],pal[5])) +
+  theme_bw()
+gg6
 
 
 library(grid)
 library(gridExtra)
 
 source("inst/grid_arrange.R")
-ggsave(grid_arrange_shared_legend(gg,gg2,gg3),file="inst/figures/sphereNormFigOrig.pdf",
-       width = 12,height = 4)
+ggsave(grid_arrange_shared_legend(gg,gg2,gg3,gg4,gg5,gg6,ncol = 3,nrow=2),
+       file="inst/figures/sphereNormFigOrig.pdf",
+       width = 12,height = 7.5)
 
 system2(command = "pdftk",
         args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf",
