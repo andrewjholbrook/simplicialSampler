@@ -120,6 +120,16 @@ banana <- function(X,B) {
   return(output)
 }
 
+hawkes_posterior <- function(X,engine) {
+  if(is.vector(X)) {
+    output <- - hpHawkes::Potential(engine,exp(X))
+  } else {
+    stop("Input must be vector.")
+  }
+  return(output)
+}
+
+
 proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL) {
   # N is dimensionality
   # x is current state
@@ -328,3 +338,119 @@ MTM <- function(N, x0, maxIt=10000,
     return(list(chain,ratio,sigma,diag(N)))
   }
 }
+
+# requires hpHawkes
+ssHawkes <- function(locations=NULL,
+                     times=NULL,
+                     params=c(1, 1/1.6, 1/(14*24),1,1,1),
+                     latentDimension=2,
+                     threads=1,                     # number of CPU cores
+                     simd=0,                        # simd = 0, 1, 2 for no simd, SSE, and AVX, respectively
+                     gpu=0,
+                     single=0,
+                     lambda=1,
+                     maxIt=10000,
+                     adaptStepSize=TRUE,
+                     targetAccept=0.35,
+                     adaptScales=TRUE) {
+  
+  N <- 4
+  x0 <- c(1, 1/1.6, 1/(14*24),1,1,1)
+  
+  if(is.null(locations)){
+    stop("No locations found.")
+  }
+  if(is.null(times)){
+    stop("No times found.")
+  }
+  numLocs <- dim(locations)[1]
+  P <- latentDimension
+  
+  chain <- matrix(0,maxIt,N)
+  
+  Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
+  SampBound = 5   # current total samples before adapting radius
+  SampCount = 0   # number of samples collected (adapt when = SampBound)
+  Proposed = 0
+  
+  if (adaptScales) {
+    Ct <- diag(N)
+    xbar <- x0 
+  } else {
+    Ct <- NULL
+  }
+  
+  engine <- engineInitial(locations,numLocs,P,times,x0,threads,simd,gpu,single)
+  engine <- hpHawkes::setParameters(engine,x0)
+  
+  accept <- rep(0,maxIt)
+  chain[1,] <- x0[c(1,4:6)]
+  for (i in 2:maxIt){
+    Proposed = Proposed + 1
+    
+    v_Nplus1 <- rep((1+sqrt(N+1))/N,N)
+    M <- rbind(diag(N), v_Nplus1)
+    M <- M - matrix(v_Nplus1,N+1,N)
+    M4 <- M * lambda /sqrt(2)
+    U <- pracma::randortho(n=N)
+    if (adaptScales) {
+      M4 <- M4 %*% U %*% chol(Ct)
+    } else {
+      M4 <- M4 %*% U
+    }
+    M4 <- M4 + matrix(log(chain[i-1,]),N+1,N,byrow = TRUE)
+    hawkesTargets <- apply(M4,MARGIN=1,
+                           FUN=function(x) {
+                             hpHawkes::setParameters(engine,c(exp(x[1]),
+                                                              x0[2],
+                                                              x0[3],
+                                                              exp(x[2:4])))
+                             output <- -hpHawkes::Potential(engine,
+                                                                c(exp(x[1]),
+                                                                  x0[2],
+                                                                  x0[3],
+                                                                  exp(x[2:4])))
+                             return(output)})
+    hawkesTargets <- exp(hawkesTargets-logsumexp(hawkesTargets))
+    
+    prpsl <- M4[sample(1:(N+1),1,prob = hawkesTargets),]
+    chain[i,] <- exp(prpsl)
+
+    SampCount <- SampCount + 1
+    if(any(chain[i,] != chain[i-1,])){
+      accept[i] <- 1
+      Acceptances = Acceptances + 1
+    }  
+    
+    if (SampCount == SampBound) { # adjust lambda at increasing intervals
+      AcceptRatio <- Acceptances / SampBound
+      AdaptRatio  <- AcceptRatio / targetAccept
+      if (AdaptRatio>2) AdaptRatio <- 2
+      if (AdaptRatio<0.5) AdaptRatio <- 0.5
+      lambda <- lambda * AdaptRatio
+      
+      SampCount <- 0
+      SampBound <- ceiling(SampBound^1.01)
+      Acceptances <- 0
+    }
+    
+    if (adaptScales) {
+      updt <- recursion(Ct=Ct,     # multivariate scales update
+                        XbarMinus=xbar,
+                        Xt=chain[i,],
+                        epsilon = 0.000001,
+                        sd=1,
+                        t=i,
+                        warmup=maxIt/100)
+      Ct <- updt[[1]]
+      xbar <- updt[[2]] 
+    }
+    
+    if(i %% 1 == 0) cat(i,"\n")
+  }
+  ratio <- sum(accept)/(maxIt-1)
+  cat("Acceptance ratio: ", ratio,"\n")
+  return(list(chain,ratio,lambda))
+}
+
+
