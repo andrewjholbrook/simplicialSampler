@@ -375,7 +375,7 @@ ssHawkes <- function(locations=NULL,
   
   if (adaptScales) {
     Ct <- diag(N)
-    xbar <- x0 
+    xbar <- rep(0,N) 
   } else {
     Ct <- NULL
   }
@@ -384,7 +384,7 @@ ssHawkes <- function(locations=NULL,
   engine <- hpHawkes::setParameters(engine,x0)
   
   accept <- rep(0,maxIt)
-  chain[1,] <- x0[c(1,4:6)]
+  chain[1,] <- log(x0[c(1,4:6)])
   for (i in 2:maxIt){
     Proposed = Proposed + 1
     
@@ -398,7 +398,7 @@ ssHawkes <- function(locations=NULL,
     } else {
       M4 <- M4 %*% U
     }
-    M4 <- M4 + matrix(log(chain[i-1,]),N+1,N,byrow = TRUE)
+    M4 <- M4 + matrix(chain[i-1,],N+1,N,byrow = TRUE)
     hawkesTargets <- apply(M4,MARGIN=1,
                            FUN=function(x) {
                              hpHawkes::setParameters(engine,c(exp(x[1]),
@@ -414,7 +414,7 @@ ssHawkes <- function(locations=NULL,
     hawkesTargets <- exp(hawkesTargets-logsumexp(hawkesTargets))
     
     prpsl <- M4[sample(1:(N+1),1,prob = hawkesTargets),]
-    chain[i,] <- exp(prpsl)
+    chain[i,] <- prpsl
 
     SampCount <- SampCount + 1
     if(any(chain[i,] != chain[i-1,])){
@@ -441,12 +441,12 @@ ssHawkes <- function(locations=NULL,
                         epsilon = 0.000001,
                         sd=1,
                         t=i,
-                        warmup=maxIt/100)
+                        warmup=20)
       Ct <- updt[[1]]
       xbar <- updt[[2]] 
     }
     
-    if(i %% 1 == 0) cat(i,"\n")
+    if(i %% 100 == 0) cat(i,"\n")
   }
   ratio <- sum(accept)/(maxIt-1)
   cat("Acceptance ratio: ", ratio,"\n")
