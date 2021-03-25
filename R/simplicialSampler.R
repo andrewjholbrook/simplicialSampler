@@ -130,7 +130,8 @@ hawkes_posterior <- function(X,engine) {
 }
 
 
-proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL) {
+proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,
+                     gaussians=FALSE) {
   # N is dimensionality
   # x is current state
   # lambda is scale
@@ -138,7 +139,8 @@ proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL) {
   v_Nplus1 <- rep((1+sqrt(N+1))/N,N)
   M <- rbind(diag(N), v_Nplus1)
   M <- M - matrix(v_Nplus1,N+1,N)
-  M4 <- M * lambda /sqrt(2)
+  M4 <- M * lambda /sqrt(2) 
+  if(gaussians) M4 <- M4 * sqrt(rchisq(n=1,df=N))
   U <- pracma::randortho(n=N)
   if (adaptScales) {
     M4 <- M4 %*% U %*% chol(Ct)
@@ -151,7 +153,8 @@ proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL) {
 }
 
 simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
-                              targetAccept=0.5,target=NULL,adaptScales=FALSE) {
+                              targetAccept=0.5,target=NULL,adaptScales=FALSE,
+                              Gaussians=FALSE) {
   if(N!=length(x0)) stop("Dimension mismatch.")
   
   chain <- matrix(0,maxIt,N)
@@ -179,7 +182,8 @@ simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
       attempt <- attempt + 1
       try(
         prpsl <- proposal(N,chain[i-1,],lambda,target,
-                          adaptScales = adaptScales, Ct=Ct)
+                          adaptScales = adaptScales, Ct=Ct,
+                          gaussians = Gaussians)
       )
     } 
     chain[i,] <- prpsl
@@ -339,118 +343,117 @@ MTM <- function(N, x0, maxIt=10000,
   }
 }
 
-# requires hpHawkes
-ssHawkes <- function(locations=NULL,
-                     times=NULL,
-                     params=c(1, 1/1.6, 1/(14*24),1,1,1),
-                     latentDimension=2,
-                     threads=1,                     # number of CPU cores
-                     simd=0,                        # simd = 0, 1, 2 for no simd, SSE, and AVX, respectively
-                     gpu=0,
-                     single=0,
-                     lambda=1,
-                     maxIt=10000,
-                     adaptStepSize=TRUE,
-                     targetAccept=0.35,
-                     adaptScales=TRUE) {
-  
-  N <- 4
-  x0 <- c(1, 1/1.6, 1/(14*24),1,1,1)
-  
-  if(is.null(locations)){
-    stop("No locations found.")
-  }
-  if(is.null(times)){
-    stop("No times found.")
-  }
-  numLocs <- dim(locations)[1]
-  P <- latentDimension
-  
-  chain <- matrix(0,maxIt,N)
-  
-  Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
-  SampBound = 5   # current total samples before adapting radius
-  SampCount = 0   # number of samples collected (adapt when = SampBound)
-  Proposed = 0
-  
-  if (adaptScales) {
-    Ct <- diag(N)
-    xbar <- rep(0,N) 
-  } else {
-    Ct <- NULL
-  }
-  
-  engine <- engineInitial(locations,numLocs,P,times,x0,threads,simd,gpu,single)
-  engine <- hpHawkes::setParameters(engine,x0)
-  
-  accept <- rep(0,maxIt)
-  chain[1,] <- log(x0[c(1,4:6)])
-  for (i in 2:maxIt){
-    Proposed = Proposed + 1
-    
-    v_Nplus1 <- rep((1+sqrt(N+1))/N,N)
-    M <- rbind(diag(N), v_Nplus1)
-    M <- M - matrix(v_Nplus1,N+1,N)
-    M4 <- M * lambda /sqrt(2)
-    U <- pracma::randortho(n=N)
-    if (adaptScales) {
-      M4 <- M4 %*% U %*% chol(Ct)
-    } else {
-      M4 <- M4 %*% U
-    }
-    M4 <- M4 + matrix(chain[i-1,],N+1,N,byrow = TRUE)
-    hawkesTargets <- apply(M4,MARGIN=1,
-                           FUN=function(x) {
-                             hpHawkes::setParameters(engine,c(exp(x[1]),
-                                                              x0[2],
-                                                              x0[3],
-                                                              exp(x[2:4])))
-                             output <- -hpHawkes::Potential(engine,
-                                                                c(exp(x[1]),
-                                                                  x0[2],
-                                                                  x0[3],
-                                                                  exp(x[2:4])))
-                             return(output)})
-    hawkesTargets <- exp(hawkesTargets-logsumexp(hawkesTargets))
-    
-    prpsl <- M4[sample(1:(N+1),1,prob = hawkesTargets),]
-    chain[i,] <- prpsl
+# beta_post <- function(outcomes,designMatrix,beta,sigmaInv) {
+#   if(dim(designMatrix)[1]!=length(outcomes)) stop("Data dimension mismatch.")
+#   if(dim(designMatrix)[2]!=length(beta)) stop("Coefficient dimension mismatch.")
+#   if(dim(Sigma)[1]!=length(beta)) stop("Covariance dimension mismatch.")
+#   
+#   logLik <- sum( outcomes*(designMatrix%*%beta) -
+#                   log(1+exp(designMatrix%*%beta)) )
+#   logPrior <- - 0.5 * t(beta) %*% sigmaInv %*% beta
+#   
+#   return(logLik+logPrior)
+# }
 
-    SampCount <- SampCount + 1
-    if(any(chain[i,] != chain[i-1,])){
-      accept[i] <- 1
-      Acceptances = Acceptances + 1
-    }  
-    
-    if (SampCount == SampBound) { # adjust lambda at increasing intervals
-      AcceptRatio <- Acceptances / SampBound
-      AdaptRatio  <- AcceptRatio / targetAccept
-      if (AdaptRatio>2) AdaptRatio <- 2
-      if (AdaptRatio<0.5) AdaptRatio <- 0.5
-      lambda <- lambda * AdaptRatio
-      
-      SampCount <- 0
-      SampBound <- ceiling(SampBound^1.01)
-      Acceptances <- 0
-    }
-    
-    if (adaptScales) {
-      updt <- recursion(Ct=Ct,     # multivariate scales update
-                        XbarMinus=xbar,
-                        Xt=chain[i,],
-                        epsilon = 0.000001,
-                        sd=1,
-                        t=i,
-                        warmup=20)
-      Ct <- updt[[1]]
-      xbar <- updt[[2]] 
-    }
-    
-    if(i %% 100 == 0) cat(i,"\n")
-  }
-  ratio <- sum(accept)/(maxIt-1)
-  cat("Acceptance ratio: ", ratio,"\n")
-  return(list(chain,ratio,lambda))
-}
-
-
+# logistic_regression <- function (outcomes,
+#                                  designMatrix,
+#                                  sampler="SS",
+#                                  maxIt) {
+#   
+#   if(dim(designMatrix)[1]!=length(outcomes)) stop("Data dimension mismatch.")
+#   if (sampler != "SS" & sampler != "RWM" & sampler != "MTM") {
+#     stop("Sampler must be SS or RWM or MTM.")
+#   }
+#   
+#   N <- dim(designMatrix)[2]
+#   x0 <- rep(0,N)
+#   chain <- matrix(0,maxIt,N)
+#   Sigma0 <- diag(N)
+#   SigmaChain <- list()
+# 
+#   Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
+#   SampBound = 5   # current total samples before adapting radius
+#   SampCount = 0   # number of samples collected (adapt when = SampBound)
+#   Proposed = 0
+#   
+#   if (sampler=="SS") {
+#     Ct <- diag(N)
+#   } else {
+#     sigma <- 2.4/sqrt(N)
+#     Ct <- sigma^2*diag(N) 
+#     xbar <- x0
+#   }
+#   
+#   accept <- rep(0,maxIt)
+#   chain[1,] <- x0
+#   SignaChain[[1]] <- Sigma0
+#   
+#   for (i in 2:maxIt){
+#     Proposed <- Proposed + 1
+#     if (sampler=="SS") {
+# 
+#       cholSigma <- chol(SigmaChain[[i-1]])
+#       sigmaInv  <- chol2inv(cholSigma)
+#       
+#       v_Nplus1 <- rep((1+sqrt(N+1))/N,N)
+#       M <- rbind(diag(N), v_Nplus1)
+#       M <- M - matrix(v_Nplus1,N+1,N)
+#       M4 <- M * lambda /sqrt(2)
+#       U <- pracma::randortho(n=N)
+#       M4 <- M4 %*% U %*% chol(Ct)
+#       M4 <- M4 + matrix(x,N+1,N,byrow = TRUE)
+#       targets <- apply(M4,MARGIN=1,
+#                              FUN=function(x) {
+#                                output <- beta_post(outcomes,
+#                                                    designMatrix,
+#                                                    x,
+#                                                    sigmaInv)
+#                                return(output)})
+#       targets <- exp(targets-logsumexp(targets))
+#       chain[i,] <- M4[sample(1:(N+1),1,prob = targets),]
+#       
+#       SampCount <- SampCount + 1
+#       if(any(chain[i,] != chain[i-1,])){
+#         accept[i] <- 1
+#         Acceptances = Acceptances + 1
+#       }  
+#       
+#       if (SampCount == SampBound) { # adjust lambda at increasing intervals
+#         AcceptRatio <- Acceptances / SampBound
+#         AdaptRatio  <- AcceptRatio / targetAccept
+#         if (AdaptRatio>2) AdaptRatio <- 2
+#         if (AdaptRatio<0.5) AdaptRatio <- 0.5
+#         lambda <- lambda * AdaptRatio
+#         
+#         SampCount <- 0
+#         SampBound <- ceiling(SampBound^1.01)
+#         Acceptances <- 0
+#       }
+#     } else if (sampler=="RWM") {
+#       
+#     } else {
+#       
+#     }
+#     
+#     # update covariance matrix Sigma
+#     SigmaChain[[i]] <- LaplacesDemon::rinvwishart(nu=N+1,
+#                                                   S=diag(N)+chain[i,]%*%t(chain[i,]))
+#     
+#     # update preconditioner
+#     updt <- recursion(Ct=Ct,
+#                       XbarMinus=xbar,
+#                       Xt=chain[i,],
+#                       epsilon = 0.000001,
+#                       sd=sigma^2,
+#                       t=i,
+#                       warmup=maxIt/10)
+#     Ct <- updt[[1]]
+#     xbar <- updt[[2]]
+#     
+#     if(i %% 1000 == 0) cat(i,"\n")
+#   }
+#   ratio <- sum(accept)/(maxIt-1)
+#   cat("Acceptance ratio: ", ratio,"\n")
+#   return(list(chain,SigmaChain,ratio,Ct))
+# 
+# }
