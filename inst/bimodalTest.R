@@ -59,29 +59,32 @@ df$Algorithm <- factor(df$Algorithm,levels = c("sSS","uSS","sRWM","uRWM"))
 df$Iteration <- rep(1:N,6)
 
 gg <- ggplot(df[df$Chain==1 ,],aes(y=States,x=Iteration,color=Algorithm)) +
-  geom_line() +
-  ylab("Values") +
-  ggtitle("Chain 1") +
+  geom_line(show.legend = FALSE) +
+  ylab("Dimension 1 values") +
+  ggtitle("Example chains for bimodal target") +
   scale_color_manual(values=c(pal[2],pal[3],pal[4],pal[5])) +
   scale_y_continuous(breaks=c(0,5,10,15,20,25,30,35), labels=c(0,5,0,5,0,5,0,5)) +
+  theme(legend.position = "none") +
   theme_bw()
 gg
 
 gg2 <- ggplot(df[df$Chain==2 ,],aes(y=States,x=Iteration,color=Algorithm)) +
-  geom_line() +
-  ggtitle("Chain 2") +
+  geom_line(show.legend = FALSE) +
+  ggtitle("") +
   ylab(NULL) +
   scale_color_manual(values=c(pal[2],pal[3],pal[4],pal[5])) +
   scale_y_continuous(breaks=c(0,5,10,15,20,25,30,35), labels=c(0,5,0,5,0,5,0,5)) +
+  theme(legend.position = "none") +
   theme_bw()
 gg2
 
 gg3<- ggplot(df[df$Chain==3 ,],aes(y=States,x=Iteration,color=Algorithm)) +
-  geom_line() +
-  ggtitle("Chain 3") +
+  geom_line(show.legend = FALSE) +
+  ggtitle("") +
   ylab(NULL) +
   scale_color_manual(values=c(pal[2],pal[3],pal[4],pal[5])) +
   scale_y_continuous(breaks=c(0,5,10,15,20,25,30,35), labels=c(0,5,0,5,0,5,0,5)) +
+  theme(legend.position = "none") +
   theme_bw()
 gg3
 
@@ -89,22 +92,22 @@ library(grid)
 library(gridExtra)
 
 source("inst/grid_arrange.R")
-ggsave(grid_arrange_shared_legend(gg,gg2,gg3,ncol = 3),
-       file="inst/figures/sphereNormFigOrig.pdf",
+ggsave(grid.arrange(gg,gg2,gg3,ncol=3), #grid_arrange_shared_legend(gg,gg2,gg3,ncol = 3),
+       file="inst/figures/multiModFig.pdf",
        width = 12,height = 4)
 
-system2(command = "pdftk",
-        args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf",
-                    "cat 2-end",
-                    "output ~/simplicialSampler/inst/figures/multiModFig.pdf")
-)
+# system2(command = "pdftk",
+#         args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf",
+#                     "cat 2-end",
+#                     "output ~/simplicialSampler/inst/figures/multiModFig.pdf")
+# )
 system2(command = "pdfcrop",
         args    = c("~/simplicialSampler/inst/figures/multiModFig.pdf",
                     "~/simplicialSampler/inst/figures/multiModFig.pdf")
 )
-system2(command = "rm",
-        args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf")
-)
+# system2(command = "rm",
+#         args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf")
+# )
 
 
 

@@ -6,7 +6,7 @@ setwd("~/simplicialSampler/")
 
 source("R/simplicialSampler.R")
 
-dimensions <- 2:5
+dimensions <- 2:4
 maxIt     <- 10000
 
 numberJumps <- function(chain) {
@@ -26,7 +26,7 @@ numberJumps <- function(chain) {
 
 set.seed(666)
 
-for(i in 1:4) {
+for(i in 1:3) {
   for(k in 1:100){
     N <- dimensions[i]
     
