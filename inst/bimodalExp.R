@@ -6,16 +6,18 @@ setwd("~/simplicialSampler/")
 
 source("R/simplicialSampler.R")
 
-dimensions <- 2:10
+dimensions <- 2:5
 maxIt     <- 10000
 
 numberJumps <- function(chain) {
   N <- dim(chain)[1]
+  D <- dim(chain)[2]
+  cutoff <- 5*D/2
   count <- 0
   
   for (i in 2:N) {
-    if ( (sum(chain[i-1,]) < 5 & sum(chain[i,]) > 5) |
-         (sum(chain[i-1,]) > 5 & sum(chain[i,]) < 5) ) {
+    if ( (sum(chain[i-1,]) < cutoff & sum(chain[i,]) > cutoff) |
+         (sum(chain[i-1,]) > cutoff & sum(chain[i,]) < cutoff) ) {
       count <- count + 1
     }
   }
@@ -24,7 +26,7 @@ numberJumps <- function(chain) {
 
 set.seed(666)
 
-for(i in 1:9) {
+for(i in 1:4) {
   for(k in 1:100){
     N <- dimensions[i]
     
