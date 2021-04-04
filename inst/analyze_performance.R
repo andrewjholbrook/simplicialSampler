@@ -26,8 +26,8 @@ gg <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, sh
   geom_smooth() +
   xlab(NULL) +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
-  ylab("Relative improvement (SS/RWM)") +
-  ggtitle("Unscaled algorithms / spherical target") +
+  ylab("Relative improvement (Simpl/RWM)") +
+  ggtitle("Vanilla algorithms / spherical target") +
   scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
 gg
@@ -51,7 +51,7 @@ gg4 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, s
   geom_point() +
   geom_smooth() +
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32,64,128,256,512),limits=c(0.75,512)) +
-  ylab("Relative improvement (SS/MTM)") +
+  ylab("Relative improvement (Simpl/MTM)") +
   scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
 gg4
@@ -99,7 +99,7 @@ gg2 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, s
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("") +
   xlab(NULL) +
-  ggtitle("Scaled algorithms / diagonal \"ill\" target") +
+  ggtitle("PC algorithms / diagonal \"ill\" target") +
   scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
 gg2
@@ -162,7 +162,7 @@ gg3 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, s
   scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
   ylab("") +
   xlab(NULL) +
-  ggtitle("Scaled algorithms / full \"ill\" target") +
+  ggtitle("PC algorithms / full \"ill\" target") +
   scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
 gg3

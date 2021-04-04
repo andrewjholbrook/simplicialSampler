@@ -16,20 +16,21 @@ df <- df[df$X1<5,]
 
 df1 <- data.frame(df$X1,df$X2,df$X4,df$X6,df$X8)
 df2 <- data.frame(df$X1,df$X3,df$X5,df$X7,df$X9)
-colnames(df1) <- c("Dimension","sSS","sRWM","uRWM","uSS")
-colnames(df2) <- c("Dimension","sSS","sRWM","uRWM","uSS")
+colnames(df1) <- c("Dimension","PCG-Simpl","PC-RWM","RWM","G-Simpl")
+colnames(df2) <- c("Dimension","PCG-Simpl","PC-RWM","RWM","G-Simpl")
 df1 <- reshape2::melt(df1,measure.vars=2:5,
                       value.name="Jumps",variable.name="Algorithm")
-df1$Algorithm <- factor(df1$Algorithm,levels = c("sSS","uSS","sRWM","uRWM"))
+df1$Algorithm <- factor(df1$Algorithm,levels = c("PCG-Simpl","G-Simpl","PC-RWM","RWM"))
 df1$Dimension <- factor(df1$Dimension)
 
 df2 <- reshape2::melt(df2,measure.vars=2:5,
                       value.name="Jumps",variable.name="Algorithm")
-df2$Algorithm <- factor(df2$Algorithm,levels = c("sSS","uSS","sRWM","uRWM"))
+df2$Algorithm <- factor(df2$Algorithm,levels = c("PCG-Simpl","G-Simpl","PC-RWM","RWM"))
 df2$Dimension <- factor(df2$Dimension)
 
 gg <- ggplot(df1,aes(x=Dimension,y=Jumps,fill=Algorithm)) +
   geom_boxplot() +
+  scale_y_sqrt(breaks = c(4,16,32,64,128,256,512,1024)) +
   scale_fill_manual(values=c(pal[2],pal[3],pal[4],pal[5]))+
   ylab("Intermodal jumps") +
   theme_bw()
@@ -38,6 +39,7 @@ gg
 
 gg2 <- ggplot(df2,aes(x=Dimension,y=Jumps,fill=Algorithm)) +
   geom_boxplot() +
+  scale_y_sqrt(breaks=c(1,2,4,16,32,64,128,256)) +
   ylab("Intermodal jumps per second") +
   scale_fill_manual(values=c(pal[2],pal[3],pal[4],pal[5]))+
   theme_bw()
