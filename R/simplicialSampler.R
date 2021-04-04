@@ -131,30 +131,47 @@ hawkes_posterior <- function(X,engine) {
 
 
 proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,
-                     gaussians=FALSE) {
+                     gaussians=FALSE,nProps=NULL) {
   # N is dimensionality
   # x is current state
   # lambda is scale
   # distrib is target distribution
-  v_Nplus1 <- rep((1+sqrt(N+1))/N,N)
-  M <- rbind(diag(N), v_Nplus1)
-  M <- M - matrix(v_Nplus1,N+1,N)
-  M4 <- M * lambda /sqrt(2) 
-  if(gaussians) M4 <- M4 * sqrt(rchisq(n=1,df=N))
-  U <- pracma::randortho(n=N)
-  if (adaptScales) {
-    M4 <- M4 %*% U %*% chol(Ct)
-  } else {
-    M4 <- M4 %*% U
+  if(is.null(nProps)) {
+    v_Nplus1 <- rep((1+sqrt(N+1))/N,N)
+    M <- rbind(diag(N), v_Nplus1)
+    M <- M - matrix(v_Nplus1,N+1,N)
+    M4 <- M * lambda /sqrt(2) 
+    if(gaussians) M4 <- M4 * sqrt(rchisq(n=1,df=N))
+    U <- pracma::randortho(n=N)
+    if (adaptScales) {
+      M4 <- M4 %*% U %*% chol(Ct)
+    } else {
+      M4 <- M4 %*% U
+    }
+    M4 <- M4 + matrix(x,N+1,N,byrow = TRUE)
+    output <- M4[sample(1:(N+1),1,prob = target(M4,distrib)),]
+  } else { # fewer proposals (bad idea)
+    if(nProps>N) stop("nProps greater than N.")
+    v_Nplus1 <- rep((1+sqrt(N+1))/N,N)
+    M <- rbind(diag(N)[1:nProps,], v_Nplus1)
+    M <- M - matrix(v_Nplus1,nProps+1,N)
+    M4 <- M * lambda /sqrt(2) 
+    if(gaussians) M4 <- M4 * sqrt(rchisq(n=1,df=N))
+    U <- pracma::randortho(n=N)
+    if (adaptScales) {
+      M4 <- M4 %*% U %*% chol(Ct)
+    } else {
+      M4 <- M4 %*% U
+    }
+    M4 <- M4 + matrix(x,nProps+1,N,byrow = TRUE)
+    output <- M4[sample(1:(nProps+1),1,prob = target(M4,distrib)),]
   }
-  M4 <- M4 + matrix(x,N+1,N,byrow = TRUE)
-  output <- M4[sample(1:(N+1),1,prob = target(M4,distrib)),]
   return(output)
 }
 
 simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
                               targetAccept=0.5,target=NULL,adaptScales=FALSE,
-                              Gaussians=FALSE) {
+                              Gaussians=FALSE,nProps=NULL) {
   if(N!=length(x0)) stop("Dimension mismatch.")
   
   chain <- matrix(0,maxIt,N)
@@ -181,9 +198,15 @@ simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
     while( is.null(prpsl) && attempt <= 100 ) {
       attempt <- attempt + 1
       try(
-        prpsl <- proposal(N,chain[i-1,],lambda,target,
-                          adaptScales = adaptScales, Ct=Ct,
-                          gaussians = Gaussians)
+        if(is.null(nProps)) {
+          prpsl <- proposal(N,chain[i-1,],lambda,target,
+                            adaptScales = adaptScales, Ct=Ct,
+                            gaussians = Gaussians)
+        } else {
+          prpsl <- proposal(N,chain[i-1,],lambda,target,
+                            adaptScales = adaptScales, Ct=Ct,
+                            gaussians = Gaussians, nProps=nProps)
+        }
       )
     } 
     chain[i,] <- prpsl
