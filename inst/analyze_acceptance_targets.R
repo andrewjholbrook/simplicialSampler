@@ -81,10 +81,10 @@ for (i in 1:dim(df1)[1]) {
 df1 <- rbind(df1,df2)
 
 colnames(df1)[9] <- "Criterion:"
-df1$`Gaussian:` <- factor(df1$TargetDistribution,labels = c("Ill-conditioned","Spherical"))
+df1$`Gaussian target:` <- factor(df1$TargetDistribution,labels = c("Ill-conditioned","Spherical"))
 
 gg <- ggplot(data = df1, aes(x=Dimension,y=Acceptance,color=`Criterion:`,
-                             shape=`Gaussian:`)) +
+                             shape=`Gaussian target:`)) +
   annotate(label="0.675",x=20,y=0.69,color="black",geom="text") +
   geom_jitter() +
   stat_smooth(se=FALSE) +
@@ -92,28 +92,48 @@ gg <- ggplot(data = df1, aes(x=Dimension,y=Acceptance,color=`Criterion:`,
   theme_bw() +
   ylab("Target acceptance") +
   ggtitle("Emprically optimal acceptance rates")+
-  scale_color_manual(labels=c("Max-Min ESS","Max-Mean ESS"),
+  scale_color_manual(labels=c("Min ESS","Mean ESS"),
                      values=c(pal[3],pal[5])) 
 
 gg
 
 gg2 <- ggplot(data = df1, aes(x=Dimension,y=lambda,color=`Criterion:`,
-              shape=`Gaussian:`)) +
+              shape=`Gaussian target:`)) +
   geom_jitter() +
   stat_smooth(se=FALSE) +
   theme_bw() +
   ylab("Lambda") +
-  ggtitle("Empirically optimal simplicial edge lengths")+
-  scale_color_manual(labels=c("Max-Min ESS","Max-Mean ESS"),
+  ggtitle("Empirically optimal edge lengths")+
+  scale_color_manual(labels=c("Min ESS","Mean ESS"),
                      values=c(pal[3],pal[5])) 
 gg2
+
+
+df <- read_table2("inst/output/nPropsResults.txt", 
+                  col_names = FALSE)
+df <- df[,1:3]
+colnames(df) <- c("nProps","Mean ESS","Min ESS")
+df <- reshape2::melt(df,measure.vars=2:3)
+df$nProps <- factor(df$nProps)
+df$variable <- factor(df$variable)
+
+gg3 <- ggplot(df,aes(x=nProps,y=value,fill=variable,color=variable)) +
+  geom_boxplot()+
+  ylab("Effective sample size (ESS)") +
+  ggtitle("Varying P for 100-D spherical target") +
+  xlab("Number of proposals (P)") +
+  scale_x_discrete(breaks = c(10,20,30,40,50,60,70,80,90,100)) +
+  scale_fill_manual(values=c(pal[5],pal[3])) +
+  scale_color_manual(values=c(pal[5],pal[3])) +
+  theme_bw()
+gg3
 
 library(grid)
 library(gridExtra)
 
 source("inst/grid_arrange.R")
-ggsave(grid_arrange_shared_legend(gg,gg2),file="inst/figures/acceptFigOrig.pdf",
-       width = 9,height = 4)
+ggsave(grid_arrange_shared_legend(gg,gg2,gg3),file="inst/figures/acceptFigOrig.pdf",
+       width = 12,height = 4)
 
 system2(command = "pdftk", 
         args    = c("~/simplicialSampler/inst/figures/acceptFigOrig.pdf",
