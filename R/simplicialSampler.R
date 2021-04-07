@@ -330,10 +330,11 @@ MTM <- function(N, x0, maxIt=10000,
         chain[i,] <- chain[i-1,]
       }
     } else { # with covariance
-      ys   <- t(chol(Ct))%*%matrix(rnorm(N*N,sd=sigma),N,N) + chain[i-1,]
+      tCholCt <- t(chol(Ct))
+      ys   <- tCholCt%*%matrix(rnorm(N*N,sd=sigma),N,N) + chain[i-1,]
       targStars <- target(t(ys),distrib = targetName)
       yStar     <- as.vector(ys[,sample(1:N,1,prob = targStars)])
-      xs        <- cbind(t(chol(Ct))%*%matrix(rnorm(N*(N-1),sd=sigma),N,N-1) + yStar, chain[i-1,])
+      xs        <- cbind(tCholCt%*%matrix(rnorm(N*(N-1),sd=sigma),N,N-1) + yStar, chain[i-1,])
       allTargets <- target(t(cbind(xs,ys)),distrib = targetName)
       xTargsSum <- sum( allTargets[1:N] )
       yTargsSum <- sum( allTargets[(N+1):(2*N)] )
