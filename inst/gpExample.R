@@ -11,15 +11,14 @@ plot(x, y, xlim=c(-3, 3))
 
 
 
-nIter = 100000
+nIter = 10000
 
 # No PC: 0.234 MH, 0.5 Simpl
 output <- gpReg(x=x,
                 y=y,
                 nIter=nIter,
-                sampler="simpl",
-                targetAccept = 0.5,
-                adaptCov = FALSE)
+                sampler="MTM",
+                targetAccept = 0.234)
 mcmc.obj <- as.mcmc(t(output$Z))
 summary(effectiveSize(mcmc.obj))
 traceplot(as.mcmc(output$lambda))
@@ -28,9 +27,13 @@ traceplot(as.mcmc(output$rho))
 traceplot(as.mcmc(output$sigma[20:nIter]))
 traceplot(as.mcmc(mcmc.obj[,1]))
 
+preds <- round(1/(1+exp(-t(output$Z))))
+misses <- apply(X=preds,MARGIN = 1, FUN = function(x) sum(x!=y))
+plot(misses,type="l")
+#mean(misses[2000:nIter])
 
 
-gpReg = function(x, y, nIter, sampler="simpl", targetAccept=NULL, adaptCov=FALSE){
+gpReg = function(x, y, nIter, sampler="simpl", targetAccept=NULL){
   
   
   diffMatAll = matrix(x, nrow=n, ncol=n) - matrix(x, nrow=n, ncol=n, byrow=TRUE)
@@ -111,6 +114,11 @@ gpReg = function(x, y, nIter, sampler="simpl", targetAccept=NULL, adaptCov=FALSE
   
 }
 
+logsumexp <- function(x) {
+  c <- max(x)
+  return(c+log(sum(exp(x-c))))
+}
+
 get.Z <- function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma, sampler,
                   tuner=1){
   
@@ -138,8 +146,20 @@ get.Z <- function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma, sampler,
     }
     
   } else { #MTM
-    
-    stop("MTM not implemented yet")
+    N <- length(Z)
+    zs   <- matrix(rnorm(N*N,sd=1/sqrt(50)*tuner),N,N) + Z
+    postAndChol <- getPost(x, y, zs, diffMatAll2, lambda, eta, rho, sigma, returnL = TRUE, Exp=TRUE) # so we don't need to decompose twice
+    targStars <- postAndChol[[1]]
+    L         <- postAndChol[[2]]
+    ZStar     <- as.vector(zs[,sample(1:N,1,prob = targStars)])
+    zPrimes   <- cbind(matrix(rnorm(N*(N-1),sd=1/sqrt(50)*tuner),N,N-1) + ZStar, Z)
+    allTargets <- getPost(x, y, zPrimes, diffMatAll2, lambda, eta, rho, sigma, L=L, Exp = TRUE)
+
+    if(runif(1) < sum(targStars)/sum(allTargets)){
+      newParam <- ZStar
+    } else {
+      newParam <- Z
+    }
     
   }
 
@@ -349,11 +369,14 @@ get.sigma <- function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma){
 
 
 
-getPost = function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma){
+getPost = function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma,
+                   L=NULL, returnL=FALSE,Exp=FALSE){
   
-  C = lambda + eta*exp(-rho*(diffMatAll2)) + sigma*diag(1, nrow=n, ncol=n);
-  
-  L = chol(C);
+  if(is.null(L)) {
+    C = lambda + eta*exp(-rho*(diffMatAll2)) + sigma*diag(1, nrow=n, ncol=n);
+    L = chol(C); 
+  }
+
   detC = prod(diag(L))^2
 
   ncols <- ncol(Z)
@@ -384,6 +407,7 @@ getPost = function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma){
     for (k in 1:ncols) {
       prbs <- 1/(1+exp(-Z[,k])) #pnorm(Z[,k])
       logLike = sum(y*log(prbs) + (1-y)*log(1-prbs))
+      if(any(is.na(logLike))) browser()
       
       logPrior2 = - 0.5 * t(invL.Z[,k])%*%invL.Z[,k]
       
@@ -391,6 +415,13 @@ getPost = function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma){
       logPost[k] = (logLike + logPrior1 + logPrior2)
     }
   }
-  return(logPost)
+  
+  if(Exp==TRUE) logPost <- exp(logPost) # for MTM
+  
+  if (returnL) {
+    return(list(logPost,L))
+  } else {
+    return(logPost)
+  }
 }
 
