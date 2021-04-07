@@ -42,7 +42,7 @@ for(i in 1:8) {
     cat(N, " ",median(eff1)," ", min(eff1), " ", time1[3],
         " ",median(eff2)," ", min(eff2), " ", time2[3],
         " ",median(eff3)," ", min(eff3), " ", time3[3],"\n",
-        file="inst/output/scaledRwmComparison.txt",
+        file="inst/output/scaledRwmComparison2.txt",
         append=TRUE)   
   }
 }
