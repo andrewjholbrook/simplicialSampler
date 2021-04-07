@@ -315,10 +315,10 @@ MTM <- function(N, x0, maxIt=10000,
   chain[1,] <- x0
   for (i in 2:maxIt){
     if (adaptCov==FALSE) {
-      ys   <- matrix(rnorm(N*N,sd=sigma),N,N) + chain[i-1,]
+      ys   <- matrix(rnorm(N*N,sd=1),N,N) + chain[i-1,]
       targStars <- target(t(ys),distrib = targetName)
       yStar     <- as.vector(ys[,sample(1:N,1,prob = targStars)])
-      xs   <- cbind(matrix(rnorm(N*(N-1),sd=sigma),N,N-1) + yStar, chain[i-1,])
+      xs   <- cbind(matrix(rnorm(N*(N-1),sd=1),N,N-1) + yStar, chain[i-1,])
       allTargets <- target(t(cbind(xs,ys)),distrib = targetName)
       xTargsSum <- sum( allTargets[1:N] )
       yTargsSum <- sum( allTargets[(N+1):(2*N)] )
