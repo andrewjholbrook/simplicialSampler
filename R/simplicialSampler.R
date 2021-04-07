@@ -284,7 +284,7 @@ randomWalk <- function(N, x0, maxIt=10000,
                         epsilon = 0.000001,
                         sd=sigma^2,
                         t=i,
-                        warmup=maxIt/10)
+                        warmup=maxIt/100)
       Ct <- updt[[1]]
       xbar <- updt[[2]]
     }
@@ -351,7 +351,7 @@ MTM <- function(N, x0, maxIt=10000,
                         epsilon = 0.000001,
                         sd=sigma^2,
                         t=i,
-                        warmup=maxIt/10)
+                        warmup=maxIt/100)
       Ct <- updt[[1]]
       xbar <- updt[[2]]
     }
