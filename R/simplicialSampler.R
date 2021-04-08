@@ -367,117 +367,406 @@ MTM <- function(N, x0, maxIt=10000,
   }
 }
 
-# beta_post <- function(outcomes,designMatrix,beta,sigmaInv) {
-#   if(dim(designMatrix)[1]!=length(outcomes)) stop("Data dimension mismatch.")
-#   if(dim(designMatrix)[2]!=length(beta)) stop("Coefficient dimension mismatch.")
-#   if(dim(Sigma)[1]!=length(beta)) stop("Covariance dimension mismatch.")
-#   
-#   logLik <- sum( outcomes*(designMatrix%*%beta) -
-#                   log(1+exp(designMatrix%*%beta)) )
-#   logPrior <- - 0.5 * t(beta) %*% sigmaInv %*% beta
-#   
-#   return(logLik+logPrior)
-# }
+#
+### GP functions
+#
 
-# logistic_regression <- function (outcomes,
-#                                  designMatrix,
-#                                  sampler="SS",
-#                                  maxIt) {
-#   
-#   if(dim(designMatrix)[1]!=length(outcomes)) stop("Data dimension mismatch.")
-#   if (sampler != "SS" & sampler != "RWM" & sampler != "MTM") {
-#     stop("Sampler must be SS or RWM or MTM.")
-#   }
-#   
-#   N <- dim(designMatrix)[2]
-#   x0 <- rep(0,N)
-#   chain <- matrix(0,maxIt,N)
-#   Sigma0 <- diag(N)
-#   SigmaChain <- list()
-# 
-#   Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
-#   SampBound = 5   # current total samples before adapting radius
-#   SampCount = 0   # number of samples collected (adapt when = SampBound)
-#   Proposed = 0
-#   
-#   if (sampler=="SS") {
-#     Ct <- diag(N)
-#   } else {
-#     sigma <- 2.4/sqrt(N)
-#     Ct <- sigma^2*diag(N) 
-#     xbar <- x0
-#   }
-#   
-#   accept <- rep(0,maxIt)
-#   chain[1,] <- x0
-#   SignaChain[[1]] <- Sigma0
-#   
-#   for (i in 2:maxIt){
-#     Proposed <- Proposed + 1
-#     if (sampler=="SS") {
-# 
-#       cholSigma <- chol(SigmaChain[[i-1]])
-#       sigmaInv  <- chol2inv(cholSigma)
-#       
-#       v_Nplus1 <- rep((1+sqrt(N+1))/N,N)
-#       M <- rbind(diag(N), v_Nplus1)
-#       M <- M - matrix(v_Nplus1,N+1,N)
-#       M4 <- M * lambda /sqrt(2)
-#       U <- pracma::randortho(n=N)
-#       M4 <- M4 %*% U %*% chol(Ct)
-#       M4 <- M4 + matrix(x,N+1,N,byrow = TRUE)
-#       targets <- apply(M4,MARGIN=1,
-#                              FUN=function(x) {
-#                                output <- beta_post(outcomes,
-#                                                    designMatrix,
-#                                                    x,
-#                                                    sigmaInv)
-#                                return(output)})
-#       targets <- exp(targets-logsumexp(targets))
-#       chain[i,] <- M4[sample(1:(N+1),1,prob = targets),]
-#       
-#       SampCount <- SampCount + 1
-#       if(any(chain[i,] != chain[i-1,])){
-#         accept[i] <- 1
-#         Acceptances = Acceptances + 1
-#       }  
-#       
-#       if (SampCount == SampBound) { # adjust lambda at increasing intervals
-#         AcceptRatio <- Acceptances / SampBound
-#         AdaptRatio  <- AcceptRatio / targetAccept
-#         if (AdaptRatio>2) AdaptRatio <- 2
-#         if (AdaptRatio<0.5) AdaptRatio <- 0.5
-#         lambda <- lambda * AdaptRatio
-#         
-#         SampCount <- 0
-#         SampBound <- ceiling(SampBound^1.01)
-#         Acceptances <- 0
-#       }
-#     } else if (sampler=="RWM") {
-#       
-#     } else {
-#       
-#     }
-#     
-#     # update covariance matrix Sigma
-#     SigmaChain[[i]] <- LaplacesDemon::rinvwishart(nu=N+1,
-#                                                   S=diag(N)+chain[i,]%*%t(chain[i,]))
-#     
-#     # update preconditioner
-#     updt <- recursion(Ct=Ct,
-#                       XbarMinus=xbar,
-#                       Xt=chain[i,],
-#                       epsilon = 0.000001,
-#                       sd=sigma^2,
-#                       t=i,
-#                       warmup=maxIt/10)
-#     Ct <- updt[[1]]
-#     xbar <- updt[[2]]
-#     
-#     if(i %% 1000 == 0) cat(i,"\n")
-#   }
-#   ratio <- sum(accept)/(maxIt-1)
-#   cat("Acceptance ratio: ", ratio,"\n")
-#   return(list(chain,SigmaChain,ratio,Ct))
-# 
-# }
+gpReg = function(x, y, nIter, sampler="simpl", targetAccept=NULL){
+  
+  n <- dim(x)[1]
+  d2 <- dim(x)[2]
+  
+  diffMatAll2 <- matrix(0,n,n)
+  for(k in 1:d2) {
+    diffMatAll = matrix(x[,k], nrow=n, ncol=n) - matrix(x[,k], nrow=n, ncol=n, byrow=TRUE)
+    diffMatAll2 = diffMatAll^2 + diffMatAll2
+  }
+  
+  post.lambda = rep(NA, nIter)
+  post.eta = rep(NA, nIter)
+  post.rho = rep(NA, nIter)
+  post.sigma = rep(NA, nIter)
+  post.Z = matrix(NA, n, nIter)
+  
+  lambda = 1
+  eta = 1
+  rho = 1
+  sigma = 1
+  Z     = -10*(y-0.5) #rnorm(n,sd=1/sqrt(n))
+  
+  tuner = 1
+  totalAccept <- rep(0,nIter)
+  Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
+  SampBound = 5   # current total samples before adapting radius
+  SampCount = 0   # number of samples collected (adapt when = SampBound)
+  Proposed = 0
+  
+  for(i in 1:nIter){
+    
+    lambda <- get.lambda(x, y, Z, diffMatAll2, lambda, eta, rho, sigma)
+    eta <- get.eta(x, y, Z, diffMatAll2, lambda, eta, rho, sigma)
+    rho <- get.rho(x, y, Z, diffMatAll2, lambda, eta, rho, sigma)
+    sigma <- get.sigma(x, y, Z, diffMatAll2, lambda, eta, rho, sigma)
+    
+    prpsl <- NULL
+    attempt <- 0
+    while( is.null(prpsl) && attempt <= 100 ) {
+      attempt <- attempt + 1
+      try(
+        prpsl <- get.Z(x, y, Z, diffMatAll2, lambda,
+                       eta, rho, sigma, sampler, tuner)
+      )
+    }
+    Z <- prpsl
+    
+    post.lambda[i] <- lambda	
+    post.eta[i] <- eta
+    post.rho[i] <- rho
+    post.sigma[i] <- sigma
+    post.Z[,i] <- Z
+    
+    SampCount <- SampCount + 1
+    if (i>1){
+      if ( any(Z != post.Z[,i-1]) ) {
+        totalAccept[i] <- 1
+        Acceptances = Acceptances + 1
+      }
+    }
+    
+    if (SampCount == SampBound) { # adjust tuner at increasing intervals
+      AcceptRatio <- Acceptances / SampBound
+      AdaptRatio  <- AcceptRatio / targetAccept
+      if (AdaptRatio>2) AdaptRatio <- 2
+      if (AdaptRatio<0.5) AdaptRatio <- 0.5
+      tuner <- tuner * AdaptRatio
+      
+      SampCount <- 0
+      SampBound <- ceiling(SampBound^1.01)
+      Acceptances <- 0
+    }
+    
+    if(i %% 100 == 0){
+      cat("Iteration ", i, "\n")
+    }
+  }
+  
+  
+  return(list(lambda = post.lambda, eta = post.eta, rho = post.rho,
+              sigma = post.sigma, Z = post.Z,
+              accept.rate = sum(totalAccept)/(nIter-1)))
+  
+}
+
+logsumexp <- function(x) {
+  c <- max(x)
+  return(c+log(sum(exp(x-c))))
+}
+
+get.Z <- function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma, sampler,
+                  tuner=1){
+  
+  if(sampler=="simpl") { # simplicial sampler
+    N <- length(Z)
+    v_Nplus1 <- rep((1+sqrt(N+1))/N,N)
+    M <- rbind(diag(N), v_Nplus1)
+    M <- M - matrix(v_Nplus1,N+1,N)
+    M4 <- M * tuner /sqrt(2) 
+    U <- pracma::randortho(n=N)
+    M4 <- M4 %*% U
+    M4 <- M4 + matrix(Z,N+1,N,byrow = TRUE)
+    newParam <- M4[sample(1:(N+1),1,
+                          prob = exp(getPost(x, y, t(M4), diffMatAll2,
+                                             lambda, eta, rho, sigma))),]
+    
+  } else if(sampler=="RWM") { # mh
+    N <- length(Z)
+    
+    Zstar <- Z + rnorm(N,sd=1/sqrt(N)*tuner)
+    posts <- getPost(x, y, cbind(Z,Zstar), diffMatAll2, lambda, eta, rho, sigma)
+    
+    if(log(runif(1)) < posts[2]-posts[1]) {
+      newParam <- Zstar
+    } else {
+      newParam <- Z
+    }
+    
+  } else { #MTM
+    N <- length(Z)
+    zs   <- matrix(rnorm(N*N,sd=1/sqrt(N)*tuner),N,N) + Z
+    postAndChol <- getPost(x, y, zs, diffMatAll2, lambda, eta, rho, sigma, returnL = TRUE, Exp=TRUE) # so we don't need to decompose twice
+    targStars <- postAndChol[[1]]
+    L         <- postAndChol[[2]]
+    ZStar     <- as.vector(zs[,sample(1:N,1,prob = targStars)])
+    zPrimes   <- cbind(matrix(rnorm(N*(N-1),sd=1/sqrt(N)*tuner),N,N-1) + ZStar, Z)
+    allTargets <- getPost(x, y, zPrimes, diffMatAll2, lambda, eta, rho, sigma, L=L, Exp = TRUE)
+    
+    if(runif(1) < sum(targStars)/sum(allTargets)){
+      newParam <- ZStar
+    } else {
+      newParam <- Z
+    }
+    
+  }
+  
+  
+  return(newParam)
+}
+
+
+get.lambda <- function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma){
+  
+  w = 4
+  m = 10
+  
+  z = getPost(x, y, Z, diffMatAll2, lambda, eta, rho, sigma) - rexp(1)
+  
+  # Stepping out to obtain the [L, R] range
+  u = runif(1)
+  L = lambda - w*u
+  R = L + w
+  v = runif(1)
+  J = floor(m*v)
+  K = (m-1) - J
+  
+  L = max(0, L)
+  while (J>0 && L>0 && z < getPost(x, y, Z, diffMatAll2, L, eta, rho, sigma)) {
+    L = L - w	
+    L = max(0, L)		
+    J = J - 1
+  }
+  
+  while (K>0 && z < getPost(x, y, Z, diffMatAll2, R, eta, rho, sigma)) {
+    R = R+w
+    K = K-1
+  }
+  
+  
+  # Shrinkage to obtain a sample
+  u = runif(1)
+  newParam = L + u*(R-L)
+  
+  while (z > getPost(x, y, Z, diffMatAll2, newParam, eta, rho, sigma)) {
+    if (newParam < lambda) {
+      L = newParam
+    }else{
+      R = newParam
+    }
+    
+    u = runif(1)
+    newParam = L + u*(R-L)
+  }
+  
+  
+  return(newParam)
+}
+
+
+
+
+get.eta <- function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma){
+  
+  w = 4
+  m = 10
+  
+  z = getPost(x, y, Z, diffMatAll2, lambda, eta, rho, sigma) - rexp(1)
+  
+  # Stepping out to obtain the [L, R] range
+  u = runif(1)
+  L = eta - w*u
+  R = L + w
+  v = runif(1)
+  J = floor(m*v)
+  K = (m-1) - J
+  
+  L = max(0, L)
+  while (J>0 && L>0 && z < getPost(x, y, Z, diffMatAll2, lambda, L, rho, sigma)) {
+    L = L - w	
+    L = max(0, L)		
+    J = J - 1
+  }
+  
+  while (K>0 && z < getPost(x, y, Z, diffMatAll2, lambda, R, rho, sigma)) {
+    R = R+w
+    K = K-1
+  }
+  
+  
+  # Shrinkage to obtain a sample
+  u = runif(1)
+  newParam = L + u*(R-L)
+  
+  while (z > getPost(x, y, Z, diffMatAll2, lambda, newParam, rho, sigma)) {
+    if (newParam < eta) {
+      L = newParam
+    }else{
+      R = newParam
+    }
+    
+    u = runif(1)
+    newParam = L + u*(R-L)
+  }
+  
+  return(newParam)
+}
+
+
+
+
+
+
+
+get.rho <- function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma){
+  
+  w = 4
+  m = 10
+  
+  z = getPost(x, y, Z, diffMatAll2, lambda, eta, rho, sigma) - rexp(1)
+  
+  # Stepping out to obtain the [L, R] range
+  u = runif(1)
+  L = rho - w*u
+  R = L + w
+  v = runif(1)
+  J = floor(m*v)
+  K = (m-1) - J
+  
+  L = max(0, L)
+  while (J>0 && L>0 && z < getPost(x, y, Z, diffMatAll2, lambda, eta, L, sigma)) {
+    L = L - w	
+    L = max(0, L)		
+    J = J - 1
+  }
+  
+  while (K>0 && z < getPost(x, y, Z, diffMatAll2, lambda, eta, R, sigma)) {
+    R = R+w
+    K = K-1
+  }
+  
+  
+  # Shrinkage to obtain a sample
+  u = runif(1)
+  newParam = L + u*(R-L)
+  
+  while (z > getPost(x, y, Z, diffMatAll2, lambda, eta, newParam, sigma)) {
+    if (newParam < rho) {
+      L = newParam
+    }else{
+      R = newParam
+    }
+    
+    u = runif(1)
+    newParam = L + u*(R-L)
+  }
+  
+  return(newParam)
+}
+
+
+
+
+
+get.sigma <- function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma){
+  
+  w = 4
+  m = 10
+  
+  z = getPost(x, y, Z, diffMatAll2, lambda, eta, rho, sigma) - rexp(1)
+  
+  # Stepping out to obtain the [L, R] range
+  u = runif(1)
+  L = sigma - w*u
+  R = L + w
+  v = runif(1)
+  J = floor(m*v)
+  K = (m-1) - J
+  
+  L = max(0, L)
+  while (J>0 && L>0 && z < getPost(x, y, Z, diffMatAll2, lambda, eta, rho, L)) {
+    L = L - w	
+    L = max(0, L)		
+    J = J - 1
+  }
+  
+  while (K>0 && z < getPost(x, y, Z, diffMatAll2, lambda, eta, rho, R)) {
+    R = R+w
+    K = K-1
+  }
+  
+  
+  # Shrinkage to obtain a sample
+  u = runif(1)
+  newParam = L + u*(R-L)
+  
+  while (z > getPost(x, y, Z, diffMatAll2, lambda, eta, rho, newParam)) {
+    if (newParam < sigma) {
+      L = newParam
+    }else{
+      R = newParam
+    }
+    
+    u = runif(1)
+    newParam = L + u*(R-L)
+  }
+  
+  return(newParam)
+}
+
+
+
+
+getPost = function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma,
+                   L=NULL, returnL=FALSE,Exp=FALSE){
+  
+  if(is.null(L)) {
+    C = lambda + eta*exp(-rho*(diffMatAll2)) + sigma*diag(1, length(y));
+    L = chol(C); 
+  }
+  
+  detC = prod(diag(L))^2
+  
+  ncols <- ncol(Z)
+  if(is.null(ncols)){ 
+    invL.Z = backsolve(L,Z)
+    
+    prbs <- 1/(1+exp(-Z)) #pnorm(Z)
+    logLike = sum(y*log(prbs) + (1-y)*log(1-prbs))
+    
+    logPrior =  dgamma(lambda, 1, 1, log=TRUE) +
+      dgamma(eta, 1, 1, log=TRUE) + dgamma(rho, 1, 1, log=TRUE) +
+      dgamma(sigma, 1, 1, log=TRUE) -
+      0.5*log(detC) - 0.5 * t(invL.Z)%*%invL.Z
+    
+    
+    logPost = (logLike + logPrior)
+    
+  } else { # multiple evals 
+    
+    logPost <- rep(0,ncols)
+    logPrior1 =  dgamma(lambda, 1, 1, log=TRUE) +
+      dgamma(eta, 1, 1, log=TRUE) + dgamma(rho, 1, 1, log=TRUE) +
+      dgamma(sigma, 1, 1, log=TRUE) -
+      0.5*log(detC)
+    
+    invL.Z = backsolve(L,Z)
+    
+    for (k in 1:ncols) {
+      prbs <- 1/(1+exp(-Z[,k])) #pnorm(Z[,k])
+      logLike = sum(y*log(prbs) + (1-y)*log(1-prbs))
+      if(any(is.na(logLike))) browser()
+      
+      logPrior2 = - 0.5 * t(invL.Z[,k])%*%invL.Z[,k]
+      
+      
+      logPost[k] = (logLike + logPrior1 + logPrior2)
+    }
+  }
+  
+  if(Exp==TRUE) logPost <- exp(logPost) # for MTM
+  
+  if (returnL) {
+    return(list(logPost,L))
+  } else {
+    return(logPost)
+  }
+}
+
