@@ -25,7 +25,7 @@ gg <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, sh
   geom_point() +
   geom_smooth() +
   xlab(NULL) +
-  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
+  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(0.82,36)) +
   ylab("Relative improvement (Simpl/RWM)") +
   ggtitle("Vanilla algorithms / spherical target") +
   scale_color_manual(values=c(pal[3],pal[5])) +
@@ -50,7 +50,7 @@ df$Criterion <- factor(df$Criterion)
 gg4 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
   geom_point() +
   geom_smooth() +
-  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32,64,128,256,512),limits=c(0.75,512)) +
+  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(0.82,36)) +
   ylab("Relative improvement (Simpl/MTM)") +
   scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
@@ -96,8 +96,8 @@ df$Criterion <- factor(df$Criterion)
 gg2 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
   geom_point() +
   geom_smooth() +
-  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
-  ylab("") +
+  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(0.82,36)) +
+  ylab(NULL) +
   xlab(NULL) +
   ggtitle("PC algorithms / diagonal \"ill\" target") +
   scale_color_manual(values=c(pal[3],pal[5])) +
@@ -123,8 +123,8 @@ df$Criterion <- factor(df$Criterion)
 gg5 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
   geom_point() +
   geom_smooth() +
-  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32,64,128,256,512),limits=c(0.75,512)) +
-  ylab("") +
+  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(0.82,36)) +
+  ylab(NULL) +
   scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
 gg5
@@ -159,8 +159,8 @@ df$Criterion <- factor(df$Criterion)
 gg3 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
   geom_point() +
   geom_smooth() +
-  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(1,32)) +
-  ylab("") +
+  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(0.82,36)) +
+  ylab(NULL) +
   xlab(NULL) +
   ggtitle("PC algorithms / full \"ill\" target") +
   scale_color_manual(values=c(pal[3],pal[5])) +
@@ -186,8 +186,8 @@ df$Criterion <- factor(df$Criterion)
 gg6 <- ggplot(df, aes(x=Dimension,y=`Relative improvement`,color=`Criterion:`, shape=`Statistic:`)) +
   geom_point() +
   geom_smooth() +
-  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32,64,128,256,512),limits=c(0.75,512)) +
-  ylab("") +
+  scale_y_continuous(trans = "log2",breaks = c(1,2,4,8,16,32),limits=c(0.82,36)) +
+  ylab(NULL) +
   scale_color_manual(values=c(pal[3],pal[5])) +
   theme_bw()
 gg6
