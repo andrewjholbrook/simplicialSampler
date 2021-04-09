@@ -371,7 +371,8 @@ MTM <- function(N, x0, maxIt=10000,
 ### GP functions
 #
 
-gpReg = function(x, y, nIter, sampler="simpl", targetAccept=NULL){
+gpReg = function(x, y, nIter, sampler="simpl",
+                 targetAccept=NULL, precond=FALSE){
   
   n <- dim(x)[1]
   d2 <- dim(x)[2]
@@ -394,6 +395,13 @@ gpReg = function(x, y, nIter, sampler="simpl", targetAccept=NULL){
   sigma = 1
   Z     = -10*(y-0.5) #rnorm(n,sd=1/sqrt(n))
   
+  if (precond) {
+    Ct <- diag(n)
+    xbar <- rep(0,n) 
+  } else {
+    Ct <- NULL
+  }
+  
   tuner = 1
   totalAccept <- rep(0,nIter)
   Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
@@ -414,7 +422,7 @@ gpReg = function(x, y, nIter, sampler="simpl", targetAccept=NULL){
       attempt <- attempt + 1
       try(
         prpsl <- get.Z(x, y, Z, diffMatAll2, lambda,
-                       eta, rho, sigma, sampler, tuner)
+                       eta, rho, sigma, sampler, tuner, Ct)
       )
     }
     Z <- prpsl
@@ -424,6 +432,18 @@ gpReg = function(x, y, nIter, sampler="simpl", targetAccept=NULL){
     post.rho[i] <- rho
     post.sigma[i] <- sigma
     post.Z[,i] <- Z
+    
+    if (precond) {
+      updt <- recursion(Ct=Ct,
+                        XbarMinus=xbar,
+                        Xt=Z,
+                        epsilon = 0.000001,
+                        sd=1,
+                        t=i,
+                        warmup=nIter/100)
+      Ct <- updt[[1]]
+      xbar <- updt[[2]] 
+    }
     
     SampCount <- SampCount + 1
     if (i>1){
@@ -457,13 +477,8 @@ gpReg = function(x, y, nIter, sampler="simpl", targetAccept=NULL){
   
 }
 
-logsumexp <- function(x) {
-  c <- max(x)
-  return(c+log(sum(exp(x-c))))
-}
-
 get.Z <- function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma, sampler,
-                  tuner=1){
+                  tuner=1, Ct=NULL){
   
   if(sampler=="simpl") { # simplicial sampler
     N <- length(Z)
@@ -472,7 +487,11 @@ get.Z <- function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma, sampler,
     M <- M - matrix(v_Nplus1,N+1,N)
     M4 <- M * tuner /sqrt(2) 
     U <- pracma::randortho(n=N)
-    M4 <- M4 %*% U
+    if (!is.null(Ct)) {
+      M4 <- M4 %*% U %*% chol(Ct)
+    } else {
+      M4 <- M4 %*% U
+    }
     M4 <- M4 + matrix(Z,N+1,N,byrow = TRUE)
     newParam <- M4[sample(1:(N+1),1,
                           prob = exp(getPost(x, y, t(M4), diffMatAll2,
@@ -481,7 +500,11 @@ get.Z <- function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma, sampler,
   } else if(sampler=="RWM") { # mh
     N <- length(Z)
     
-    Zstar <- Z + rnorm(N,sd=1/sqrt(N)*tuner)
+    if (! is.null(Ct)) {
+      Zstar <- Z + t(chol(Ct))%*%rnorm(N,sd=1/sqrt(N)*tuner)
+    } else {
+      Zstar <- Z + rnorm(N,sd=1/sqrt(N)*tuner)
+    }
     posts <- getPost(x, y, cbind(Z,Zstar), diffMatAll2, lambda, eta, rho, sigma)
     
     if(log(runif(1)) < posts[2]-posts[1]) {
@@ -492,12 +515,21 @@ get.Z <- function(x, y, Z, diffMatAll2, lambda, eta, rho, sigma, sampler,
     
   } else { #MTM
     N <- length(Z)
-    zs   <- matrix(rnorm(N*N,sd=1/sqrt(N)*tuner),N,N) + Z
+    if (! is.null(Ct)) {
+      tCholCt <- t(chol(Ct))
+      zs   <- tCholCt%*%matrix(rnorm(N*N,sd=1/sqrt(N)*tuner),N,N) + Z
+    } else {
+      zs   <- matrix(rnorm(N*N,sd=1/sqrt(N)*tuner),N,N) + Z
+    }
     postAndChol <- getPost(x, y, zs, diffMatAll2, lambda, eta, rho, sigma, returnL = TRUE, Exp=TRUE) # so we don't need to decompose twice
     targStars <- postAndChol[[1]]
     L         <- postAndChol[[2]]
     ZStar     <- as.vector(zs[,sample(1:N,1,prob = targStars)])
-    zPrimes   <- cbind(matrix(rnorm(N*(N-1),sd=1/sqrt(N)*tuner),N,N-1) + ZStar, Z)
+    if (! is.null(Ct)) {
+      zPrimes   <- cbind(tCholCt%*%matrix(rnorm(N*(N-1),sd=1/sqrt(N)*tuner),N,N-1) + ZStar, Z)
+    } else {
+      zPrimes   <- cbind(matrix(rnorm(N*(N-1),sd=1/sqrt(N)*tuner),N,N-1) + ZStar, Z)
+    }
     allTargets <- getPost(x, y, zPrimes, diffMatAll2, lambda, eta, rho, sigma, L=L, Exp = TRUE)
     
     if(runif(1) < sum(targStars)/sum(allTargets)){
