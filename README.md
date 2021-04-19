@@ -7,7 +7,9 @@ Contains code, data and results associated with paper _A simple MCMC algorithm t
 
 `simplicialSampler.R` contains all project functions
 
-### inst/output/
+### inst/
+
+#### output/
 `bimodalComparison.txt` contains results presented in Figure 5
 
 `fullyIllGaussianSequential.txt` contains results presented in the right two plots of Figure 4
@@ -24,8 +26,8 @@ Contains code, data and results associated with paper _A simple MCMC algorithm t
 
 `scaledRwmComparison.txt` contains results for middle plots of Figure 4
 
-### inst/data/
+#### inst/data/
 `electionResults.rds` contains data used in GP classification example
 
-### inst/savedCovs/
+#### inst/savedCovs/
 `cov*.rds` contain randomly generated covariance matrices of `*` dimensions used in experiments leading to the right plots of Figure 4
