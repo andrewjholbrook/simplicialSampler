@@ -25,6 +25,15 @@ Contains code, data and results associated with paper _A simple MCMC algorithm t
 
 `gpExamplePrecond.R` runs experiment leading to vanilla algorithm results in Table 1
 
+`illNormalExp.R` runs experiment leading to middle plots of Figure 4
+
+`illNormalScaling_scaled.R` runs experiment leading to preconditioned results of left two plots from Figure 3
+
+`illNormalScaling_unscaled.R` runs experiment leading to vanilla results of left two plots from Figure 3
+
+
+
+
 
 
 
