@@ -19,6 +19,15 @@ Contains code, data and results associated with paper _A simple MCMC algorithm t
 
 `fullyIllNormalExpSequential.R` runs experiment portrayed in right plots of Figure 4
 
+`gpAnalysis.R`  takes experimental output and creates Table 1
+
+`gpExample.R` runs experiment leading to vanilla algorithm results in Table 1
+
+`gpExamplePrecond.R` runs experiment leading to vanilla algorithm results in Table 1
+
+
+
+
 #### output/
 `bimodalComparison.txt` contains results presented in Figure 5
 
