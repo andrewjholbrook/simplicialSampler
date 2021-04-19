@@ -24,3 +24,8 @@ Contains code, data and results associated with paper _A simple MCMC algorithm t
 
 `scaledRwmComparison.txt` contains results for middle plots of Figure 4
 
+### inst/data/
+`electionResults.rds` contains data used in GP classification example
+
+### inst/savedCovs/
+`cov*.rds` contain randomly generated covariance matrices of `*` dimensions used in experiments leading to the right two plots of Figure 4
