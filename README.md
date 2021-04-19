@@ -28,4 +28,4 @@ Contains code, data and results associated with paper _A simple MCMC algorithm t
 `electionResults.rds` contains data used in GP classification example
 
 ### inst/savedCovs/
-`cov*.rds` contain randomly generated covariance matrices of `*` dimensions used in experiments leading to the right two plots of Figure 4
+`cov*.rds` contain randomly generated covariance matrices of `*` dimensions used in experiments leading to the right plots of Figure 4
