@@ -9,6 +9,16 @@ Contains code, data and results associated with paper _A simple MCMC algorithm t
 
 ### inst/
 
+`analyze_acceptance_targets.R` takes experimental output and creates left two plots of Figure 3
+
+`analyze_performance.R` takes experimental output and creates Figure 4
+
+`bimodalExp.R` runs experiment portrayed in Figure 5
+
+`bimodalTest.R` tests validity of samplers on bimodal target
+
+`fullyIllNormalExpSequential.R` runs experiment portrayed in right plots of Figure 4
+
 #### output/
 `bimodalComparison.txt` contains results presented in Figure 5
 
