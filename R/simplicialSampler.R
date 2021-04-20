@@ -120,14 +120,7 @@ banana <- function(X,B) {
   return(output)
 }
 
-hawkes_posterior <- function(X,engine) {
-  if(is.vector(X)) {
-    output <- - hpHawkes::Potential(engine,exp(X))
-  } else {
-    stop("Input must be vector.")
-  }
-  return(output)
-}
+
 
 
 proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,
