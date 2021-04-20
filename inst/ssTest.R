@@ -1,4 +1,4 @@
-library(mvnfast)
+library(mvtnorm)
 library(coda)
 
 setwd("~/simplicialSampler/")
