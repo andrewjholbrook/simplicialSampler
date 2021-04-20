@@ -29,9 +29,23 @@ Contains code, data and results associated with paper _A simple MCMC algorithm t
 
 `illNormalScaling_scaled.R` runs experiment leading to preconditioned results of left two plots from Figure 3
 
-`illNormalScaling_unscaled.R` runs experiment leading to vanilla results of left two plots from Figure 3
+`mtmTest.R` tests validity of MTM implementations
 
+`nPropsExp.R` runs experiment leading to right plot of Figure 3
 
+`rwmTest.R` tests validity of RWM implementations
+
+`simulateIllCovs.R` randomly generates covariance matrices used for experiment leading to right plot of Figure 4
+
+`sphereNormalScaling_unscaled.R` runs experiment leading to vanilla results of left two plots from Figure 3
+
+`sphericalNormalExp.R` runs experiment leading to left plots of Figure 4
+
+`ssTest.R` tests validity of simplicial sampler
+
+`testCovRecursion.R` tests validity of recursion used when adapting proposal covariances
+
+`visualizeBimodalExp.R` takes experimental output and creates Figure 5
 
 
 
