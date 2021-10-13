@@ -1,5 +1,5 @@
 # simplicialSampler
-Contains code, data and results associated with paper _A simple MCMC algorithm that chooses from multiple proposals at each step_.
+Contains code, data and results associated with paper _Generating MCMC proposals by randomly rotating the regular simplex_.
 
 ## File list
 
