@@ -167,13 +167,12 @@ proposalP1 <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,nProps=NULL)
   # x is current state
   # lambda is scale
   # distrib is target distribution
-    M <- matrix(rnorm(nProps*N,sd=lambda),nProps,N)
-    M <- rbind(M,0)
-    if (adaptScales) {
-      M <- M %*% chol(Ct)
-    }
-    M <- M + matrix(x,nProps+1,N,byrow = TRUE)
-    output <- M[sample(1:(nProps+1),1,prob = target(M,distrib)),]
+    theta0 <- rnorm(rnorm(N,sd=lambda)) + x
+    M <- matrix(rnorm(nProps*N,sd=lambda),nProps,N) + matrix(theta0,nProps,N,byrow = TRUE)
+    M <- rbind(M,x)
+    if (adaptScales) stop("Preconditioning not implemented yet.")
+    propProbs <- colSums(exp(-0.25*lambda^(-2)*as.matrix(dist(M))^2))
+    output <- M[sample(1:(nProps+1),1,prob = target(M,distrib)*propProbs),]
   return(output)
 }
 
