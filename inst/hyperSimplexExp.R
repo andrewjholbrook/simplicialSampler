@@ -1,5 +1,12 @@
 library(mvtnorm)
 library(coda)
+library(ggplot2)
+library(wesanderson)
+
+N <- 3
+set.seed(1)
+pal <- wes_palette("Zissou1", 5, type = "continuous")
+
 
 setwd("~/simplicialSampler/")
 
@@ -84,11 +91,83 @@ for(i in 1:N){
     qqline(output[[1]][,i], distribution = function(p) qnorm(p,sd=1 ))
 }
 
+df1 <- data.frame(Samples=c(output[[1]][,1],output[[1]][,2],output[[1]][,3]),
+                  Dimension=c(rep(1,100000),rep(2,100000),rep(3,100000)))
+df1$Dimension <- factor(df1$Dimension)
+gg <- ggplot(df1,aes(sample=Samples,color=Dimension)) +
+    geom_abline(slope=1) + stat_qq() + 
+    scale_color_manual(values=c(pal[5],pal[3],pal[1])) +
+    xlim(c(-5,5)) + ylim(c(-5,5)) +
+    ylab("Sample quantiles") + xlab("Theoretical quantiles") + 
+    ggtitle("3D Gaussian target: 100 proposals / 0.5 target rate") +
+    guides(color = guide_legend(override.aes = list(size = 10))) +
+    theme_bw()
+gg
 
-#
-### make figure
-#
+###################################################
+N <- 3
+# get samples directly from mixture of gaussians
+DirectSamples <- matrix(0,100000,N)
+for(i in 1:100000) {
+    DirectSamples[i,] <- rnorm(N) + sample(c(0,5),size=1)
+}
 
-prpsl <- proposal(nProps,chain[i-1,],lambda,target,
-                  gaussians = Gaussians)
+scaleFUN <- function(x) sprintf("%.1f", x)
+
+# spherical target / no adapt scales
+output <- simplicialSampler(nProps=100,N=N, x0=rep(0,N), maxIt = 100000, adaptStepSize=TRUE,
+                            target = "bimodalGaussian",targetAccept = 0.15)
+
+output[[1]][,1] <- output[[1]][order(output[[1]][,1]),1]
+output[[1]][,2] <- output[[1]][order(output[[1]][,2]),2]
+output[[1]][,3] <- output[[1]][order(output[[1]][,3]),3]
+df1 <- data.frame(Samples=c(output[[1]][,1],output[[1]][,2],output[[1]][,3]),
+                  Dimension=c(rep(1,100000),rep(2,100000),rep(3,100000)))
+df1$Dimension <- factor(df1$Dimension)
+DirectSamples[,1] <- DirectSamples[order(DirectSamples[,1]),1]
+DirectSamples[,2] <- DirectSamples[order(DirectSamples[,2]),2]
+DirectSamples[,3] <- DirectSamples[order(DirectSamples[,3]),3]
+df1$Direct <- c(DirectSamples[,1],DirectSamples[,2],DirectSamples[,3])
+gg2 <- ggplot(df1,aes(x=Direct,y=Samples,color=Dimension)) +
+    geom_abline(slope=1) +
+    geom_point() +
+    xlim(c(-5,10)) + ylim(c(-5,10)) +
+    ylab("Sample quantiles") + xlab("Theoretical quantiles") + 
+    ggtitle("3D mixture of Gaussians target: 100 proposals / 0.15 target rate") +
+    scale_y_continuous(labels = scaleFUN) +
+    scale_color_manual(values=c(pal[5],pal[3],pal[1])) +
+    guides(color = guide_legend(override.aes = list(size = 10))) +
+    theme_bw()
+gg2
+
+library(grid)
+library(gridExtra)
+source("inst/grid_arrange.R")
+ggsave(grid_arrange_shared_legend(gg,gg2,ncol = 2,nrow=1,position = "bottom"),
+       file="inst/figures/sphereNormFigOrig.pdf",
+       width = 12,height = 4)
+
+system2(command = "pdftk",
+        args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf",
+                    "cat 2-end",
+                    "output ~/simplicialSampler/inst/figures/accuracyFig.pdf")
+)
+system2(command = "pdfcrop",
+        args    = c("~/simplicialSampler/inst/figures/accuracyFig.pdf",
+                    "~/simplicialSampler/inst/figures/accuracyFig.pdf")
+)
+system2(command = "rm",
+        args    = c("~/simplicialSampler/inst/figures/sphereNormFigOrig.pdf")
+)
+
+
+
+
+
+
+
+
+
+
+
 
