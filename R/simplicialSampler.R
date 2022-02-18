@@ -162,6 +162,22 @@ proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,
   return(output)
 }
 
+proposalP1 <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,nProps=NULL) {
+  # N is dimensionality
+  # x is current state
+  # lambda is scale
+  # distrib is target distribution
+    M <- matrix(rnorm(nProps*N,sd=lambda),nProps,N)
+    M <- rbind(M,0)
+    if (adaptScales) {
+      M <- M %*% chol(Ct)
+    }
+    M <- M + matrix(x,nProps+1,N,byrow = TRUE)
+    output <- M[sample(1:(nProps+1),1,prob = target(M,distrib)),]
+  return(output)
+}
+
+
 simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
                               targetAccept=0.5,target=NULL,adaptScales=FALSE,
                               Gaussians=FALSE,nProps=NULL) {
@@ -200,6 +216,77 @@ simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
                             adaptScales = adaptScales, Ct=Ct,
                             gaussians = Gaussians, nProps=nProps)
         }
+      )
+    } 
+    chain[i,] <- prpsl
+    SampCount <- SampCount + 1
+    if(any(chain[i,] != chain[i-1,])){
+      accept[i] <- 1
+      Acceptances = Acceptances + 1
+    }  
+    
+    if (SampCount == SampBound) { # adjust lambda at increasing intervals
+      AcceptRatio <- Acceptances / SampBound
+      AdaptRatio  <- AcceptRatio / targetAccept
+      if (AdaptRatio>2) AdaptRatio <- 2
+      if (AdaptRatio<0.5) AdaptRatio <- 0.5
+      lambda <- lambda * AdaptRatio
+      
+      SampCount <- 0
+      SampBound <- ceiling(SampBound^1.01)
+      Acceptances <- 0
+    }
+    
+    if (adaptScales) {
+      updt <- recursion(Ct=Ct,     # multivariate scales update
+                        XbarMinus=xbar,
+                        Xt=chain[i,],
+                        epsilon = 0.000001,
+                        sd=1,
+                        t=i,
+                        warmup=maxIt/100)
+      Ct <- updt[[1]]
+      xbar <- updt[[2]] 
+    }
+    
+    if(i %% 1000 == 0) cat(i,"\n")
+  }
+  ratio <- sum(accept)/(maxIt-1)
+  cat("Acceptance ratio: ", ratio,"\n")
+  return(list(chain,ratio,lambda))
+}
+
+tjelP1 <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
+                              targetAccept=0.5,target=NULL,adaptScales=FALSE,
+                              nProps=N) {
+  if(N!=length(x0)) stop("Dimension mismatch.")
+  
+  chain <- matrix(0,maxIt,N)
+  
+  Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
+  SampBound = 5   # current total samples before adapting radius
+  SampCount = 0   # number of samples collected (adapt when = SampBound)
+  Proposed = 0
+  
+  if (adaptScales) {
+    Ct <- diag(N)
+    xbar <- x0 
+  } else {
+    Ct <- NULL
+  }
+  
+  accept <- rep(0,maxIt)
+  chain[1,] <- x0
+  for (i in 2:maxIt){
+    Proposed = Proposed + 1
+    
+    prpsl <- NULL
+    attempt <- 0
+    while( is.null(prpsl) && attempt <= 100 ) {
+      attempt <- attempt + 1
+      try(
+          prpsl <- proposalP1(N,chain[i-1,],lambda,target,
+                            adaptScales = adaptScales, Ct=Ct, nProps=nProps)
       )
     } 
     chain[i,] <- prpsl
