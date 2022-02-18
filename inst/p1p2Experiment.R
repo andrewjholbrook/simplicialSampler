@@ -12,22 +12,23 @@ source("R/simplicialSampler.R")
 #####
 #
 maxIt <- 10000
-dimensions <- c(4,8,16,32,64,128,256,512)
+dimensions <- 4:45
 for(i in 1:8) {
   for(k in 1:10) {
     N <- dimensions[i]
     ptm <- proc.time()
-    output1 <- simplicialSampler(N=N,x0=rep(0,N), maxIt = maxIt, lambda = 1/sqrt(N),
+    output1 <- simplicialSampler(N=N,x0=rep(0,N), maxIt = maxIt, lambda = 0.5/sqrt(N),
                                  adaptStepSize = TRUE, targetAccept = 0.5,
                                  target = "sphericalGaussian")
     time1 <- proc.time() - ptm
     out.mcmc1 <- as.mcmc(output1[[1]])
     eff1 <- effectiveSize(out.mcmc1)
+    
     ptm <- proc.time()
     output2 <- tjelP1(N=N, x0=rep(0,N), maxIt = maxIt, adaptStepSize=TRUE,
                      adaptScales = FALSE, target = "sphericalGaussian",
-                     lambda = 1/sqrt(N),
-                     nProps=N/2)
+                     lambda = 0.5/sqrt(N),
+                     nProps=N)
     time2 <- proc.time() - ptm
     out.mcmc2 <- as.mcmc(output2[[1]])
     eff2 <- effectiveSize(out.mcmc2)
@@ -35,15 +36,17 @@ for(i in 1:8) {
     ptm <- proc.time()
     output3 <- tjelP1(N=N, x0=rep(0,N), maxIt = maxIt, adaptStepSize=TRUE,
                          adaptScales = FALSE, target = "sphericalGaussian",
-                         lambda = 1/sqrt(N),
-                         nProps=N)
+                         lambda = 0.5/sqrt(N),
+                         nProps=2*N)
     time3 <- proc.time() - ptm
     out.mcmc3 <- as.mcmc(output3[[1]])
     eff3 <- effectiveSize(out.mcmc3)
+    
+    ptm <- proc.time()
     output4 <- tjelP1(N=N, x0=rep(0,N), maxIt = maxIt, adaptStepSize=TRUE,
                       adaptScales = FALSE, target = "sphericalGaussian",
-                      lambda = 1/sqrt(N),
-                      nProps=2*N)
+                      lambda = 0.5/sqrt(N),
+                      nProps=4*N)
     time4 <- proc.time() - ptm
     out.mcmc4 <- as.mcmc(output4[[1]])
     eff4 <- effectiveSize(out.mcmc4)
