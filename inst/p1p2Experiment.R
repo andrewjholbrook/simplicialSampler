@@ -11,9 +11,9 @@ source("R/simplicialSampler.R")
 ############ comparison to P1
 #####
 #
-maxIt <- 10000
-dimensions <- 4:45
-for(i in 1:8) {
+maxIt <- 20000
+dimensions <- 4:64
+for(i in 1:length(4:64)) {
   for(k in 1:10) {
     N <- dimensions[i]
     ptm <- proc.time()
@@ -51,10 +51,10 @@ for(i in 1:8) {
     out.mcmc4 <- as.mcmc(output4[[1]])
     eff4 <- effectiveSize(out.mcmc4)
     
-    cat(N, " ",median(eff1)," ", min(eff1), " ", time1[3],
-        " ",median(eff2)," ", min(eff2), " ", time2[3],
-        " ",median(eff3)," ", min(eff3), " ", time3[3],
-        " ",median(eff4)," ", min(eff4), " ", time4[3],"\n",
+    cat(N, " ",mean(eff1), " ", time1[3],
+        " ",mean(eff2), " ", time2[3],
+        " ",mean(eff3)," ", time3[3],
+        " ",mean(eff4), " ", time4[3],"\n",
         file="inst/output/p1P2Comparison.txt",
         append=TRUE)   
   }
