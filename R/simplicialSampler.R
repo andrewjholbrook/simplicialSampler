@@ -179,7 +179,8 @@ proposalP1 <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,nProps=NULL)
 
 simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
                               targetAccept=0.5,target=NULL,adaptScales=FALSE,
-                              Gaussians=FALSE,nProps=NULL) {
+                              Gaussians=FALSE,nProps=NULL,
+                              burnin=0) {
   if(N!=length(x0)) stop("Dimension mismatch.")
   
   chain <- matrix(0,maxIt,N)
@@ -250,14 +251,15 @@ simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
     
     if(i %% 1000 == 0) cat(i,"\n")
   }
-  ratio <- sum(accept)/(maxIt-1)
+  ratio <- sum(accept[(burnin+1):maxIt])/(maxIt-burnin)
   cat("Acceptance ratio: ", ratio,"\n")
-  return(list(chain,ratio,lambda))
+  return(list(chain[(burnin+1):maxIt,],ratio,lambda))
 }
 
 tjelP1 <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
                               targetAccept=0.5,target=NULL,adaptScales=FALSE,
-                              nProps=N) {
+                              nProps=N,
+                              burnin=0) {
   if(N!=length(x0)) stop("Dimension mismatch.")
   
   chain <- matrix(0,maxIt,N)
@@ -321,9 +323,9 @@ tjelP1 <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
     
     if(i %% 1000 == 0) cat(i,"\n")
   }
-  ratio <- sum(accept)/(maxIt-1)
+  ratio <- sum(accept[(burnin+1):maxIt])/(maxIt-burnin)
   cat("Acceptance ratio: ", ratio,"\n")
-  return(list(chain,ratio,lambda))
+  return(list(chain[(burnin+1):maxIt,],ratio,lambda))
 }
 
 randomWalk <- function(N, x0, maxIt=10000,
