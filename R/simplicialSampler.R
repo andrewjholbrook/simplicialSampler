@@ -17,7 +17,7 @@ logsumexp <- function(x) {
   return(c+log(sum(exp(x-c))))
 }
 
-target <- function(X,distrib=NULL,parallel=FALSE) {
+target <- function(X,distrib=NULL,parallel=FALSE,log=FALSE) {
   if(is.null(distrib)) stop("Target distribution must be specified.")
   if (distrib=="sphericalGaussian") {
     if (is.vector(X)) { # RWM
@@ -37,7 +37,9 @@ target <- function(X,distrib=NULL,parallel=FALSE) {
       } else {
         densities <- mvtnorm::dmvnorm(X,sigma = diag(rep(1,dim(X)[2])),log = TRUE)
       }
-      densities <- exp(densities-logsumexp(densities)) # helps with underflow
+      if(log==FALSE) {
+        densities <- exp(densities-logsumexp(densities)) # helps with underflow
+      }
     } else {
       stop("States must be vectors or matrices.")
     }
@@ -168,19 +170,22 @@ proposalP1 <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,nProps=NULL,
   # x is current state
   # lambda is scale
   # distrib is target distribution
-  if(is.null(onesPlusDiagInv)) stop("Need to precompute PxP inverse")
-  BigSigInv <- kronecker(onesPlusDiagInv,diag(N)/(lambda^2))
+ # if(is.null(onesPlusDiagInv)) stop("Need to precompute PxP inverse")
+  #BigSigInv <- kronecker(onesPlusDiagInv,diag(N)/(lambda^2))
 
-    theta0 <- rnorm(rnorm(N,sd=lambda)) + x
+    theta0 <- rnorm(N,sd=lambda) + x
     M <- matrix(rnorm(nProps*N,sd=lambda),nProps,N) + matrix(theta0,nProps,N,byrow = TRUE)
     M <- rbind(M,x)
     if (adaptScales) stop("Preconditioning not implemented yet.")
-    propProbs <- rep(0,N+1)
-    for(i in 1:(nProps+1)) {
-      thetaMinusMinus <- as.vector(t(M[-i,])) - rep(M[i,],N)
-      propProbs[i] <- exp(-t(thetaMinusMinus)%*%BigSigInv%*%thetaMinusMinus/2)
-    }
-    output <- M[sample(1:(nProps+1),1,prob = target(M,distrib)*propProbs),]
+    propProbs <- rep(0,nProps+1)
+    # for(i in 1:(nProps+1)) {
+    #   thetaMinusMinus <- as.vector(t(M[-i,])) - rep(M[i,],nProps)
+    #   propProbs[i] <- -t(thetaMinusMinus)%*%BigSigInv%*%thetaMinusMinus/2
+    # }
+    logProbs = target(M,distrib,log=TRUE) + propProbs - log(rexp(n=nProps+1))
+    propIndex <- which(logProbs==max(logProbs))
+    if(length(propIndex)>1) browser()
+    output <- M[propIndex,]
   return(output)
 }
 
@@ -273,7 +278,7 @@ tjelP1 <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
   chain <- matrix(0,maxIt,N)
   
   # precompute P by P matrix inverse
-  onesPlusDiagInv <- solve((matrix(1,nProps,nProps)+diag(nProps)))
+#  onesPlusDiagInv <- solve((matrix(1,nProps,nProps)+diag(nProps)))
   
   Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
   SampBound = 5   # current total samples before adapting radius
@@ -298,8 +303,8 @@ tjelP1 <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
       attempt <- attempt + 1
       try(
           prpsl <- proposalP1(N,chain[i-1,],lambda,target,
-                            adaptScales = adaptScales, Ct=Ct, nProps=nProps,
-                            onesPlusDiagInv = onesPlusDiagInv)
+                            adaptScales = adaptScales, Ct=Ct, nProps=nProps)
+                            #onesPlusDiagInv = onesPlusDiagInv)
       )
     } 
     chain[i,] <- prpsl

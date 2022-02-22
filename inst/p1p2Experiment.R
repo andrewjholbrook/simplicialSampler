@@ -79,7 +79,7 @@ for(i in 1:length(4:64)) {
       secondMomentEstimators[k,] <- colMeans(output1[[1]]^2)
     }
     
-    cat("p1nProps", " " ,N, " ",meanEff1/numReps,
+    cat("pNProps", " " ,N, " ",meanEff1/numReps,
         " ", time1[3]/numReps," ", mean(colMeans(firstMomentEstimators^2))," ",
         mean(colMeans((secondMomentEstimators-1)^2))," ",
         "\n",
@@ -113,7 +113,7 @@ for(i in 1:length(4:64)) {
       secondMomentEstimators[k,] <- colMeans(output1[[1]]^2)
     }
     
-    cat("p12nProps", " " ,N, " ",meanEff1/numReps,
+    cat("p2NProps", " " ,N, " ",meanEff1/numReps,
         " ", time1[3]/numReps," ", mean(colMeans(firstMomentEstimators^2))," ",
         mean(colMeans((secondMomentEstimators-1)^2))," ",
         "\n",
