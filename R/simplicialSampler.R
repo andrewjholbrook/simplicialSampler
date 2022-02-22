@@ -170,7 +170,7 @@ proposalP1 <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,nProps=NULL,
   # x is current state
   # lambda is scale
   # distrib is target distribution
- # if(is.null(onesPlusDiagInv)) stop("Need to precompute PxP inverse")
+  #if(is.null(onesPlusDiagInv)) stop("Need to precompute PxP inverse")
   #BigSigInv <- kronecker(onesPlusDiagInv,diag(N)/(lambda^2))
 
     theta0 <- rnorm(N,sd=lambda) + x
@@ -179,8 +179,8 @@ proposalP1 <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,nProps=NULL,
     if (adaptScales) stop("Preconditioning not implemented yet.")
     propProbs <- rep(0,nProps+1)
     # for(i in 1:(nProps+1)) {
-    #   thetaMinusMinus <- as.vector(t(M[-i,])) - rep(M[i,],nProps)
-    #   propProbs[i] <- -t(thetaMinusMinus)%*%BigSigInv%*%thetaMinusMinus/2
+    #    thetaMinusMinus <- as.vector(t(M[-i,])) - rep(M[i,],nProps)
+    #    propProbs[i] <- -t(thetaMinusMinus)%*%BigSigInv%*%thetaMinusMinus/2
     # }
     logProbs = target(M,distrib,log=TRUE) + propProbs - log(rexp(n=nProps+1))
     propIndex <- which(logProbs==max(logProbs))
@@ -278,7 +278,7 @@ tjelP1 <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
   chain <- matrix(0,maxIt,N)
   
   # precompute P by P matrix inverse
-#  onesPlusDiagInv <- solve((matrix(1,nProps,nProps)+diag(nProps)))
+  #onesPlusDiagInv <- solve((matrix(1,nProps,nProps)+diag(nProps)))
   
   Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
   SampBound = 5   # current total samples before adapting radius

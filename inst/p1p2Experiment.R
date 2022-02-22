@@ -14,9 +14,9 @@ set.seed(1)
 #####
 #
 maxIt <- 11000
-dimensions <- 4:64
+dimensions <- seq(from=10,to=500,by=10)
 numReps <- 30
-for(i in 1:length(4:64)) {
+for(i in 1:20) {
     N <- dimensions[i]
     
     firstMomentEstimators  <- matrix(0,numReps,N)
