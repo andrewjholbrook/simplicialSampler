@@ -162,16 +162,24 @@ proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,
   return(output)
 }
 
-proposalP1 <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,nProps=NULL) {
+proposalP1 <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,nProps=NULL,
+                       onesPlusDiagInv=NULL) {
   # N is dimensionality
   # x is current state
   # lambda is scale
   # distrib is target distribution
+  if(is.null(onesPlusDiagInv)) stop("Need to precompute PxP inverse")
+  BigSigInv <- kronecker(onesPlusDiagInv,diag(N)/(lambda^2))
+
     theta0 <- rnorm(rnorm(N,sd=lambda)) + x
     M <- matrix(rnorm(nProps*N,sd=lambda),nProps,N) + matrix(theta0,nProps,N,byrow = TRUE)
     M <- rbind(M,x)
     if (adaptScales) stop("Preconditioning not implemented yet.")
-    propProbs <- colSums(exp(-0.25*lambda^(-2)*as.matrix(dist(M))^2))
+    propProbs <- rep(0,N+1)
+    for(i in 1:(nProps+1)) {
+      thetaMinusMinus <- as.vector(t(M[-i,])) - rep(M[i,],N)
+      propProbs[i] <- exp(-t(thetaMinusMinus)%*%BigSigInv%*%thetaMinusMinus/2)
+    }
     output <- M[sample(1:(nProps+1),1,prob = target(M,distrib)*propProbs),]
   return(output)
 }
@@ -264,6 +272,9 @@ tjelP1 <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
   
   chain <- matrix(0,maxIt,N)
   
+  # precompute P by P matrix inverse
+  onesPlusDiagInv <- solve((matrix(1,nProps,nProps)+diag(nProps)))
+  
   Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
   SampBound = 5   # current total samples before adapting radius
   SampCount = 0   # number of samples collected (adapt when = SampBound)
@@ -287,7 +298,8 @@ tjelP1 <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
       attempt <- attempt + 1
       try(
           prpsl <- proposalP1(N,chain[i-1,],lambda,target,
-                            adaptScales = adaptScales, Ct=Ct, nProps=nProps)
+                            adaptScales = adaptScales, Ct=Ct, nProps=nProps,
+                            onesPlusDiagInv = onesPlusDiagInv)
       )
     } 
     chain[i,] <- prpsl
