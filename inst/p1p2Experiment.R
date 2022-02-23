@@ -14,8 +14,8 @@ set.seed(1)
 #####
 #
 maxIt <- 11000
-dimensions <- seq(from=10,to=500,by=10)
-numReps <- 30
+dimensions <- seq(from=100,to=2000,by=100)
+numReps <- 1
 for(i in 1:20) {
     N <- dimensions[i]
     
@@ -41,13 +41,13 @@ for(i in 1:20) {
       eff1 <- effectiveSize(out.mcmc1)
       meanEff1 <- meanEff1 + mean(eff1)
       
-      firstMomentEstimators[k,]  <- colMeans(output1[[1]])
-      secondMomentEstimators[k,] <- colMeans(output1[[1]]^2)
+      # firstMomentEstimators[k,]  <- colMeans(output1[[1]])
+      # secondMomentEstimators[k,] <- colMeans(output1[[1]]^2)
     }
     
     cat("simpl", " " ,N, " ",meanEff1/numReps,
-        " ", time1[3]/numReps," ", mean(colMeans(firstMomentEstimators^2))," ",
-        mean(colMeans((secondMomentEstimators-1)^2))," ",
+        " ", time1[3]/numReps,#" ",# mean(colMeans(firstMomentEstimators^2))," ",
+        #mean(colMeans((secondMomentEstimators-1)^2))," ",
         "\n",
         file="inst/output/p1P2Comparison.txt",
         append=TRUE)
@@ -75,19 +75,19 @@ for(i in 1:20) {
       eff1 <- effectiveSize(out.mcmc1)
       meanEff1 <- meanEff1 + mean(eff1)
       
-      firstMomentEstimators[k,]  <- colMeans(output1[[1]])
-      secondMomentEstimators[k,] <- colMeans(output1[[1]]^2)
+    #  firstMomentEstimators[k,]  <- colMeans(output1[[1]])
+     # secondMomentEstimators[k,] <- colMeans(output1[[1]]^2)
     }
     
     cat("pNProps", " " ,N, " ",meanEff1/numReps,
-        " ", time1[3]/numReps," ", mean(colMeans(firstMomentEstimators^2))," ",
-        mean(colMeans((secondMomentEstimators-1)^2))," ",
+        " ", time1[3]/numReps,#" ", mean(colMeans(firstMomentEstimators^2))," ",
+       # mean(colMeans((secondMomentEstimators-1)^2))," ",
         "\n",
         file="inst/output/p1P2Comparison.txt",
         append=TRUE)
     
-    firstMomentEstimators  <- matrix(0,numReps,N)
-    secondMomentEstimators <- matrix(0,numReps,N)
+   # firstMomentEstimators  <- matrix(0,numReps,N)
+  #  secondMomentEstimators <- matrix(0,numReps,N)
     time1 <- 0
     meanEff1 <- 0
     for (k in 1:numReps) {
@@ -109,19 +109,19 @@ for(i in 1:20) {
       eff1 <- effectiveSize(out.mcmc1)
       meanEff1 <- meanEff1 + mean(eff1)
       
-      firstMomentEstimators[k,]  <- colMeans(output1[[1]])
-      secondMomentEstimators[k,] <- colMeans(output1[[1]]^2)
+    #  firstMomentEstimators[k,]  <- colMeans(output1[[1]])
+     # secondMomentEstimators[k,] <- colMeans(output1[[1]]^2)
     }
     
     cat("p2NProps", " " ,N, " ",meanEff1/numReps,
-        " ", time1[3]/numReps," ", mean(colMeans(firstMomentEstimators^2))," ",
-        mean(colMeans((secondMomentEstimators-1)^2))," ",
+        " ", time1[3]/numReps,#" ", mean(colMeans(firstMomentEstimators^2))," ",
+      #  mean(colMeans((secondMomentEstimators-1)^2))," ",
         "\n",
         file="inst/output/p1P2Comparison.txt",
         append=TRUE)
     
-    firstMomentEstimators  <- matrix(0,numReps,N)
-    secondMomentEstimators <- matrix(0,numReps,N)
+   # firstMomentEstimators  <- matrix(0,numReps,N)
+  #  secondMomentEstimators <- matrix(0,numReps,N)
     time1 <- 0
     meanEff1 <- 0
     for (k in 1:numReps) {
@@ -143,13 +143,13 @@ for(i in 1:20) {
       eff1 <- effectiveSize(out.mcmc1)
       meanEff1 <- meanEff1 + mean(eff1)
       
-      firstMomentEstimators[k,]  <- colMeans(output1[[1]])
-      secondMomentEstimators[k,] <- colMeans(output1[[1]]^2)
+   #   firstMomentEstimators[k,]  <- colMeans(output1[[1]])
+    #  secondMomentEstimators[k,] <- colMeans(output1[[1]]^2)
     }
     
     cat("p14nProps", " " ,N, " ",meanEff1/numReps,
-        " ", time1[3]/numReps," ", mean(colMeans(firstMomentEstimators^2))," ",
-        mean(colMeans((secondMomentEstimators-1)^2))," ",
+        " ", time1[3]/numReps,#" ", mean(colMeans(firstMomentEstimators^2))," ",
+       # mean(colMeans((secondMomentEstimators-1)^2))," ",
         "\n",
         file="inst/output/p1P2Comparison.txt",
         append=TRUE)
