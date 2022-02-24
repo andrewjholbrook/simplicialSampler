@@ -17,7 +17,7 @@ set.seed(1)
 maxIt <- 10000
 dimensions <- c(128,256,512) #c(4,8,16,32,64,128,256,512)
 for(l in 1:3) {
-  diffs <- 1/abs(dimensions[i]-df$Dimension) / sum(1/abs(dimensions[i]-df$Dimension))
+  diffs <- 1/abs(dimensions[l]-df$Dimension) / sum(1/abs(dimensions[l]-df$Dimension))
   acceptParam <- sum(df$Acceptance*diffs)
   
   for(k in 1:10) {
