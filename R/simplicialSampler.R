@@ -165,23 +165,25 @@ proposal <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,
 }
 
 proposalP1 <- function(N,x,lambda,distrib,adaptScales=FALSE,Ct=NULL,nProps=NULL,
-                       onesPlusDiagInv=NULL) {
+                       onesPlusDiagInv=NULL, slow=FALSE) {
   # N is dimensionality
   # x is current state
   # lambda is scale
   # distrib is target distribution
-  #if(is.null(onesPlusDiagInv)) stop("Need to precompute PxP inverse")
-  #BigSigInv <- kronecker(onesPlusDiagInv,diag(N)/(lambda^2))
+  if(slow & is.null(onesPlusDiagInv)) stop("Need to precompute PxP inverse")
+  if (slow) BigSigInv <- kronecker(onesPlusDiagInv,diag(N)/(lambda^2))
 
     theta0 <- rnorm(N,sd=lambda) + x
     M <- matrix(rnorm(nProps*N,sd=lambda),nProps,N) + matrix(theta0,nProps,N,byrow = TRUE)
     M <- rbind(M,x)
     if (adaptScales) stop("Preconditioning not implemented yet.")
     propProbs <- rep(0,nProps+1)
-    # for(i in 1:(nProps+1)) {
-    #    thetaMinusMinus <- as.vector(t(M[-i,])) - rep(M[i,],nProps)
-    #    propProbs[i] <- -t(thetaMinusMinus)%*%BigSigInv%*%thetaMinusMinus/2
-    # }
+    if(slow){
+      for(i in 1:(nProps+1)) {
+         thetaMinusMinus <- as.vector(t(M[-i,])) - rep(M[i,],nProps)
+         propProbs[i] <- -t(thetaMinusMinus)%*%BigSigInv%*%thetaMinusMinus/2
+      }
+    }
     logProbs = target(M,distrib,log=TRUE) + propProbs - log(rexp(n=nProps+1))
     propIndex <- which(logProbs==max(logProbs))
     if(length(propIndex)>1) browser()
@@ -272,13 +274,18 @@ simplicialSampler <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
 tjelP1 <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
                               targetAccept=0.5,target=NULL,adaptScales=FALSE,
                               nProps=N,
-                              burnin=0) {
+                              burnin=0,
+                              slow=FALSE) {
   if(N!=length(x0)) stop("Dimension mismatch.")
   
   chain <- matrix(0,maxIt,N)
   
   # precompute P by P matrix inverse
-  #onesPlusDiagInv <- solve((matrix(1,nProps,nProps)+diag(nProps)))
+  if (slow) {
+    onesPlusDiagInv <- solve((matrix(1,nProps,nProps)+diag(nProps)))
+  } else {
+    onesPlusDiagInv <- NULL
+  } 
   
   Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
   SampBound = 5   # current total samples before adapting radius
@@ -303,8 +310,9 @@ tjelP1 <- function(N,x0,lambda=1,maxIt=10000,adaptStepSize=TRUE,
       attempt <- attempt + 1
       try(
           prpsl <- proposalP1(N,chain[i-1,],lambda,target,
-                            adaptScales = adaptScales, Ct=Ct, nProps=nProps)
-                            #onesPlusDiagInv = onesPlusDiagInv)
+                            adaptScales = adaptScales, Ct=Ct, nProps=nProps,
+                            onesPlusDiagInv = onesPlusDiagInv,
+                            slow = slow)
       )
     } 
     chain[i,] <- prpsl
