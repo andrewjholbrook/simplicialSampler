@@ -15,10 +15,10 @@ df$X5 <- df$X3 / df$X4
 colnames(df) <- c("Sampler","Dimension", "ESS", "Seconds", "ESSs")
 df$Seconds <- df$Seconds /10000
 
-df$Sampler <- factor(df$Sampler, labels = c("Slow P1, 2D props",
-                                            "Slow P1, D props",
-                                            "Fast P1, 2D props",
-                                            "Fast P1, D props",
+df$Sampler <- factor(df$Sampler, labels = c("Slow P1, 2D props            ",
+                                            "Slow P1, D props            ",
+                                            "Fast P1, 2D props            ",
+                                            "Fast P1, D props            ",
                                             "Simpl"))
 
 gg <- ggplot(df,aes(x=Dimension,y=ESS,color=Sampler)) +
@@ -56,4 +56,9 @@ ggsave(ggarrange(gg, gg2, gg3, ncol = 3, nrow = 1, common.legend = TRUE,
                  legend = "bottom"),file="inst/figures/p1P2Fig.pdf",
        device = "pdf",
        width = 12,height = 4)
+
+system2(command = "pdfcrop", 
+        args    = c("~/simplicialSampler/inst/figures/p1p2Fig.pdf", 
+                    "~/simplicialSampler/inst/figures/p1p2Fig.pdf") 
+)
 
