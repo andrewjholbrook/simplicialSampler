@@ -34,7 +34,7 @@ df1 <- df1[df1$isMaxMeanESS,]
 #   }
 # }
  df1
-saveRDS(df1,file="inst/output/optimalAcceptanceMTM.rds")
+#saveRDS(df1,file="inst/output/optimalAcceptanceMTM.rds")
 
 gg <- ggplot(data = df1, aes(x=Dimension,y=Acceptance)) +
   geom_jitter() +
@@ -45,10 +45,10 @@ gg <- ggplot(data = df1, aes(x=Dimension,y=Acceptance)) +
 
 gg
 
-gg2 <- ggplot(data = df1, aes(x=Dimension,y=sigma)) +
-  geom_jitter() +
-  stat_smooth(se=TRUE) +
-  theme_bw() +
-  ylab("sigma") +
-  ggtitle("Empirically optimal standard deviations lengths")
-gg2
+ggsave("mtmScaling.pdf",device="pdf",path="inst/figures/",width = 6,height=3)
+
+system2(command = "pdfcrop",
+        args    = c("~/simplicialSampler/inst/figures/mtmScaling.pdf",
+                    "~/simplicialSampler/inst/figures/mtmScaling.pdf")
+)
+
