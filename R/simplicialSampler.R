@@ -408,8 +408,7 @@ randomWalk <- function(N, x0, maxIt=10000,
 
 
 MTM <- function(N, x0, maxIt=10000,
-                       adaptCov=FALSE, targetName=NULL, adaptStepSize=FALSE,
-                targetAccept=0.5) {
+                adaptCov=FALSE, targetName=NULL) {
   if(N!=length(x0)) stop("Dimension mismatch.")
   
   chain <- matrix(0,maxIt,N)
@@ -418,14 +417,9 @@ MTM <- function(N, x0, maxIt=10000,
   Ct <- sigma^2*diag(N) 
   xbar <- x0
   
-  Acceptances = 0 # total acceptances within adaptation run (<= SampBound)
-  SampBound = 5   # current total samples before adapting radius
-  SampCount = 0   # number of samples collected (adapt when = SampBound)
-
   accept <- rep(0,maxIt)
   chain[1,] <- x0
   for (i in 2:maxIt){
-
     if (adaptCov==FALSE) {
       ys   <- matrix(rnorm(N*N,sd=sigma),N,N) + chain[i-1,]
       targStars <- target(t(ys),distrib = targetName)
@@ -437,13 +431,12 @@ MTM <- function(N, x0, maxIt=10000,
       
       if(runif(1) < yTargsSum / xTargsSum){
         accept[i] <- 1
-        Acceptances = Acceptances + 1
         chain[i,] <- yStar
       } else {
         chain[i,] <- chain[i-1,]
       }
     } else { # with covariance
-      tCholCt <- t(chol(Ct*sigma^2))
+      tCholCt <- t(chol(Ct))
       ys   <- tCholCt%*%matrix(rnorm(N*N,sd=1),N,N) + chain[i-1,]
       targStars <- target(t(ys),distrib = targetName)
       yStar     <- as.vector(ys[,sample(1:N,1,prob = targStars)])
@@ -454,7 +447,6 @@ MTM <- function(N, x0, maxIt=10000,
       
       if(runif(1) < yTargsSum / xTargsSum){
         accept[i] <- 1
-        Acceptances = Acceptances + 1
         chain[i,] <- yStar
       } else {
         chain[i,] <- chain[i-1,]
@@ -462,26 +454,12 @@ MTM <- function(N, x0, maxIt=10000,
       updt <- recursion(Ct=Ct,
                         XbarMinus=xbar,
                         Xt=chain[i,],
-                        epsilon = 0.1, # changed for 256 dimensions
-                        sd=1,
+                        epsilon = 0.000001,
+                        sd=sigma^2,
                         t=i,
                         warmup=maxIt/100)
       Ct <- updt[[1]]
       xbar <- updt[[2]]
-    }
-    
-    SampCount <- SampCount + 1
-    
-    if (SampCount == SampBound & adaptStepSize) { # adjust lambda at increasing intervals
-      AcceptRatio <- Acceptances / SampBound
-      AdaptRatio  <- AcceptRatio / targetAccept
-      if (AdaptRatio>2) AdaptRatio <- 2
-      if (AdaptRatio<0.5) AdaptRatio <- 0.5
-      sigma <- sigma * AdaptRatio
-      cat(sigma,"\n")
-      SampCount <- 0
-      SampBound <- ceiling(SampBound^1.01)
-      Acceptances <- 0
     }
     
     if(i %% 1000 == 0) cat(i,"\n")
@@ -494,6 +472,7 @@ MTM <- function(N, x0, maxIt=10000,
     return(list(chain,ratio,sigma,diag(N)))
   }
 }
+
 
 #
 ### GP functions
