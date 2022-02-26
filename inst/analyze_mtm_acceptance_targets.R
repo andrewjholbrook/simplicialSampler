@@ -35,13 +35,19 @@ df1 <- df1[df1$isMaxMeanESS,]
 # }
  df1
 #saveRDS(df1,file="inst/output/optimalAcceptanceMTM.rds")
+ 
+df2 <- read_table2("inst/output/mtmAcceptanceRates.txt",col_names = FALSE)
+df2 <- df2[,1:2]
+colnames(df2) <- c("Dimension", "Acceptance")
 
-gg <- ggplot(data = df1, aes(x=Dimension,y=Acceptance)) +
+gg <- ggplot(data = df2, aes(x=Dimension,y=Acceptance)) +
+  geom_hline(yintercept=0.3) +
   geom_jitter() +
   stat_smooth(se=TRUE) +
+ # stat_smooth(data=df2,se=TRUE) +
   theme_bw() +
   ylab("Target acceptance") +
-  ggtitle("Emprically optimal acceptance rates, multiple-try Metropolis")
+  ggtitle("Acceptance rates, multiple-try Metropolis")
 
 gg
 
