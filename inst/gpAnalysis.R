@@ -7,6 +7,14 @@ df <- read_table2("inst/output/gpClassification.txt",
 df <- df[,1:9]
 colnames(df) <- c("Algorithm","MeanEssLatents","MinEssLatents","EssLambda",
                             "EssEta","EssRho", "EssSigma","ItsTo10", "Time")
+df2 <- read_table2("inst/output/gpClassificationMTM.txt", 
+                  col_names = FALSE)
+df2 <- df2[df2$X1=="vanilla",1:9]
+df <- df[df$Algorithm!="mtm",]
+df2$X1 <- "mtm"
+colnames(df2) <- c("Algorithm","MeanEssLatents","MinEssLatents","EssLambda",
+                  "EssEta","EssRho", "EssSigma","ItsTo10", "Time")
+df <- rbind(df,df2)
 
 df[,2:7] <- df[,2:7] / df$Time
 df$TimeTo10 <- df$ItsTo10 * (df$ItsTo10/100000*df[,9])
@@ -59,6 +67,14 @@ df <- read_table2("inst/output/gpClassificationPrecond.txt",
 df <- df[,1:9]
 colnames(df) <- c("Algorithm","MeanEssLatents","MinEssLatents","EssLambda",
                   "EssEta","EssRho", "EssSigma","ItsTo10", "Time")
+df2 <- read_table2("inst/output/gpClassificationMTM.txt", 
+                   col_names = FALSE)
+df2 <- df2[df2$X1=="precond",1:9]
+df <- df[df$Algorithm!="mtm",]
+df2$X1 <- "mtm"
+colnames(df2) <- c("Algorithm","MeanEssLatents","MinEssLatents","EssLambda",
+                   "EssEta","EssRho", "EssSigma","ItsTo10", "Time")
+df <- rbind(df,df2)
 
 df[,2:7] <- df[,2:7] / df$Time
 df$TimeTo10 <- df$ItsTo10 * (df$ItsTo10/100000*df[,9])
@@ -118,8 +134,14 @@ df <- df[,1:9]
 colnames(df) <- c("Algorithm","MeanEssLatents","MinEssLatents","EssLambda",
                   "EssEta","EssRho", "EssSigma","TimeTo10", "Time")
 
-#df[,2:7] <- df[,2:7] / df$Time
-#df$TimeTo10 <- df$ItsTo10 * (df$ItsTo10/100000*df[,9])
+df2 <- read_table2("inst/output/gpClassificationMTM.txt", 
+                   col_names = FALSE)
+df2 <- df2[df2$X1=="vanilla",1:9]
+df <- df[df$Algorithm!="mtm",]
+df2$X1 <- "mtm"
+colnames(df2) <- c("Algorithm","MeanEssLatents","MinEssLatents","EssLambda",
+                   "EssEta","EssRho", "EssSigma","TimeTo10", "Time")
+df <- rbind(df,df2)
 
 df <- df[,c(1:8)]
 
@@ -164,17 +186,22 @@ df5 <- df4[3:1,]
 ### precond
 #
 
-df <- read_table2("inst/output/gpClassificationPrecond.txt", 
+df <- read_table2("inst/output/gpClassification.txt", 
                   col_names = FALSE)
 df <- df[,1:9]
 colnames(df) <- c("Algorithm","MeanEssLatents","MinEssLatents","EssLambda",
                   "EssEta","EssRho", "EssSigma","TimeTo10", "Time")
 
-#df[,2:7] <- df[,2:7] / df$Time
-#df$TimeTo10 <- df$ItsTo10 * (df$ItsTo10/100000*df[,9])
+df2 <- read_table2("inst/output/gpClassificationMTM.txt", 
+                   col_names = FALSE)
+df2 <- df2[df2$X1=="precond",1:9]
+df <- df[df$Algorithm!="mtm",]
+df2$X1 <- "mtm"
+colnames(df2) <- c("Algorithm","MeanEssLatents","MinEssLatents","EssLambda",
+                   "EssEta","EssRho", "EssSigma","TimeTo10", "Time")
+df <- rbind(df,df2)
 
 df <- df[,c(1:8)]
-
 df$Algorithm <- as.factor(as.numeric(factor(df$Algorithm)))
 g <- df$Algorithm
 splt <- split(df,g)
