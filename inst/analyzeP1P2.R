@@ -3,7 +3,7 @@ setwd("~/simplicialSampler/")
 library(readr)
 library(ggplot2)
 library(wesanderson)
-pal <- wes_palette("FantasticFox1", 5, type = "discrete")
+pal <- wes_palette("Moonrise3", 5, type = "discrete")
 
 
 df <- read_table2("inst/output/p1P2Comparison.txt", 
